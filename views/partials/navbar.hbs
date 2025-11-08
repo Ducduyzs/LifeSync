@@ -1,0 +1,26 @@
+<nav class="navbar navbar-expand px-4 py-2 d-flex justify-content-between align-items-center custom-navbar">
+  
+  <!-- Left: Logo + Search -->
+  <div class="d-flex align-items-center gap-4">
+    <!-- Logo -->
+    <h4 class="mb-0 text-white fw-semibold">LifeSync</h4>
+
+    <!-- Search bar -->
+    <div class="position-relative search-container">
+      <input
+        type="text"
+        class="form-control search-input"
+        placeholder="Search..."
+      />
+    </div>
+  </div>
+
+  <!-- Right: Notifications + User -->
+  <div class="d-flex align-items-center gap-3 text-white">
+    <i class="bi bi-bell fs-5 icon-hover"></i>
+    <div class="d-flex align-items-center gap-2 user-info">
+      <i class="bi bi-person-circle fs-4"></i>
+      <span class="fw-semibold">{{user.full_name}}</span>
+    </div>
+  </div>
+</nav>

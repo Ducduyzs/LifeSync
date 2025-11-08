@@ -1,0 +1,52 @@
+/* 🎨 LifeSync Navbar Styling */
+.custom-navbar {
+  background-color: #DF9090;
+}
+
+.search-container {
+  position: relative;
+}
+
+.search-input {
+  width: 320px;
+  border: none;
+  border-radius: 50px;
+  padding: 10px 20px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.search-input::placeholder {
+  color: #999;
+  text-align: center;
+}
+
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+}
+
+/* ✨ Icon hover effects */
+.icon-hover {
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.3s ease;
+}
+
+.icon-hover:hover {
+  transform: scale(1.15);
+  color: #fff8f8;
+}
+
+/* 👤 User info alignment */
+.user-info span {
+  color: #fff;
+  font-weight: 500;
+}
+
+.user-info i {
+  transition: transform 0.2s ease;
+}
+
+.user-info:hover i {
+  transform: scale(1.1);
+}

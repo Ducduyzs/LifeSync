@@ -1,0 +1,58 @@
+/* 🌸 Nút menu pastel trắng */
+.btn-menu {
+  background-color: #fff;
+  border: none;
+  width: 150px;
+  padding: 10px 0;
+  border-radius: 14px;
+  font-weight: 500;
+  color: #222;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  transition: all 0.25s ease;
+}
+
+.btn-menu:hover {
+  background-color: #f8c2d0;
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* 🌙 Dark mode (chuyển màu khi click icon) */
+body.dark {
+  background-color: #1e1e2f;
+}
+
+body.dark .btn-menu {
+  background-color: #333;
+  color: #f8bbd0;
+}
+
+body.dark .btn-menu:hover {
+  background-color: #f48fb1;
+  color: #fff;
+}
+
+
+.btn-nav {
+  background: #ffe3e7;
+  border: none;
+  border-radius: 10px;
+  padding: 6px 10px;
+  transition: 0.2s;
+}
+.btn-nav:hover {
+  background: #ffd1d8;
+}
+
+.btn-today {
+  background: #fff;
+  border: 1px solid #ffd1d8;
+  border-radius: 12px;
+  padding: 6px 14px;
+  transition: 0.2s;
+}
+.btn-today.active {
+  background: #ff9fb2;
+  color: #fff;
+  border-color: #ff9fb2;
+}

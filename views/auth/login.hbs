@@ -1,0 +1,46 @@
+<section class="auth-hero">
+  <div class="auth-container">
+    <div class="brand">
+      <div class="brand-icon"><i class="bi bi-flower3"></i></div>
+      <h1 class="brand-title">LifeSync</h1>
+      <p class="brand-sub">Balance your time & health</p>
+    </div>
+
+    <div class="auth-card">
+      <div class="tabs">
+        <button class="tab active">Login</button>
+        <button class="tab" onclick="location.href='/auth/register'">Sign Up</button>
+      </div>
+
+      {{#if error}}<div class="alert alert-danger small text-center mb-3">{{error}}</div>{{/if}}
+
+      <form method="post" action="/auth/login">
+        <label class="field">
+          <span>Email</span>
+          <div class="control">
+            <i class="bi bi-envelope"></i>
+            <input type="email" name="email" placeholder="Enter your email" required>
+          </div>
+        </label>
+
+        <label class="field">
+          <span>Password</span>
+          <div class="control">
+            <i class="bi bi-lock"></i>
+            <input type="password" name="password" placeholder="Enter your password" required>
+          </div>
+        </label>
+
+        <div class="d-flex justify-content-end">
+          <a href="/auth/forgot" class="small text-rose-600 text-decoration-none">Forgot password?</a>
+        </div>
+
+        <button class="btn-primary w-100 mt-3" type="submit">Login</button>
+      </form>
+
+      <div class="small text-center mt-3">
+        Don’t have an account? <a href="/auth/register" class="text-rose-600">Sign Up</a>
+      </div>
+    </div>
+  </div>
+</section>

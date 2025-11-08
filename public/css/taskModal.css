@@ -1,0 +1,183 @@
+/* 🌸 Modal Overlay */
+.task-modal {
+  display: none;
+  position: fixed;
+  z-index: 1055;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 218, 218, 0.6);
+  backdrop-filter: blur(4px);
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+/* Hiển thị modal */
+.task-modal.show {
+  display: flex !important;
+}
+
+/* 🌸 Modal box */
+.task-modal-content {
+  background-color: #fffafc;
+  border-radius: 24px;
+  padding: 40px 60px;
+  width: 600px;
+  max-width: 90vw;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 🌸 Input fields */
+.task-input,
+.task-textarea,
+.task-select {
+  background-color: #ffcaca !important;
+  border: none !important;
+  border-radius: 20px !important;
+  padding: 10px 16px !important;
+  color: #4a2a2a;
+  font-size: 0.95rem;
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.task-input:focus,
+.task-textarea:focus,
+.task-select:focus {
+  outline: none;
+  box-shadow: 0 0 6px rgba(255, 180, 180, 0.8);
+  transform: scale(1.01);
+}
+
+.task-textarea {
+  border-radius: 16px !important;
+}
+
+/* 🌸 Priority select colors */
+.task-select option[value="Low"] {
+  background-color: #ffdddd;
+  color: #444;
+}
+.task-select option[value="Medium"] {
+  background-color: #ffbebe;
+  color: #333;
+}
+.task-select option[value="High"] {
+  background-color: #ff9e9e;
+  color: #111;
+}
+
+/* 🌸 Buttons */
+.btn-cancel,
+.btn-save {
+  border: none;
+  border-radius: 12px;
+  font-weight: 500;
+  padding: 8px 24px;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel {
+  background-color: #ffe6e6;
+  color: #a33a3a;
+}
+.btn-cancel:hover {
+  background-color: #ffd3d3;
+  transform: translateY(-1px);
+}
+
+.btn-save {
+  background-color: #f4a5a5;
+  color: #fff;
+}
+.btn-save:hover {
+  background-color: #e88383;
+  transform: translateY(-1px);
+}
+
+/* 🌸 Add Tag small round button (nếu dùng icon riêng) */
+.btn-tag {
+  background-color: #ffcaca;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  color: #7a3a3a;
+  font-size: 1.4rem;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.btn-tag:hover {
+  background-color: #ffb4b4;
+  transform: scale(1.1);
+  color: #fff;
+}
+
+/* 🌸 Align Priority + Tag row */
+.task-priority-tag {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* Cột Priority */
+.task-priority-tag .priority-col {
+  flex: 0 0 30%;
+}
+
+/* Cột Tag + Add button */
+.task-priority-tag .tag-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hàng chứa input và nút Add tag */
+.task-priority-tag .tag-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* 🌸 Add Tag button (dạng chữ + icon, nằm cùng hàng input) */
+.btn-add-tag {
+  background-color: #ffcaca;
+  color: #6b2f2f;
+  border: none;
+  border-radius: 12px;
+  font-weight: 500;
+  padding: 10px 20px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.btn-add-tag:hover {
+  background-color: #ffb4b4;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Input Tag chiếm hết chiều ngang */
+#taskTag {
+  flex: 1;
+  min-width: 0;
+}
