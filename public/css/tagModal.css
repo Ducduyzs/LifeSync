@@ -143,3 +143,14 @@
     width: 90%;
   }
 }
+#tagModal {
+  z-index: 9000 !important;
+}
+
+#tagManagerModal {
+  z-index: 9001 !important;
+}
+
+#tagDeleteConfirmModal {
+  z-index: 9002 !important;
+}
