@@ -1,0 +1,172 @@
+<div class="health-dashboard">
+
+  <div class="mb-4 flex justify-end">
+    <a href="/health/profile" class="health-btn-ghost" style="padding: 0.5rem 1rem; font-size: 0.95rem;">
+      <i class="bi bi-person-check"></i> View/Edit Profile
+    </a>
+  </div>
+
+  <div class="health-grid health-grid-3 mb-6">
+    <div class="health-card">
+      <h3><i class="bi bi-calendar-check"></i> Today</h3>
+      {{#if todayLog}}
+        <p class="health-metric"><i class="bi bi-moon-stars"></i> Sleep: {{todayLog.sleep_hours}} h</p>
+        <p class="health-metric"><i class="bi bi-activity"></i> Steps: {{todayLog.steps}}</p>
+        <p class="health-metric"><i class="bi bi-fire"></i> Calories: {{todayLog.calories}}</p>
+        <p class="health-metric"><i class="bi bi-water"></i> Water: {{todayLog.water_intake}} L</p>
+        <p class="health-metric"><i class="bi bi-emoji-smile"></i> Mood: {{todayLog.mood}} / 5</p>
+      {{else}}
+        <p class="health-subtext">No logs recorded today. Add data below.</p>
+      {{/if}}
+    </div>
+
+    <div class="health-card">
+      <h3><i class="bi bi-bar-chart"></i> Last 7 Days</h3>
+      {{#if stats.avg_sleep}}
+        <p class="health-metric"><i class="bi bi-moon-stars"></i> Avg Sleep: {{stats.avg_sleep}} h</p>
+        <p class="health-metric"><i class="bi bi-activity"></i> Avg Steps: {{stats.avg_steps}}</p>
+        <p class="health-metric"><i class="bi bi-fire"></i> Avg Calories: {{stats.avg_calories}}</p>
+        <p class="health-metric"><i class="bi bi-water"></i> Avg Water: {{stats.avg_water}} L</p>
+        <p class="health-metric"><i class="bi bi-emoji-smile"></i> Avg Mood: {{stats.avg_mood}} / 5</p>
+      {{else}}
+        <p class="health-subtext">Insufficient data in the last 7 days.</p>
+      {{/if}}
+    </div>
+
+    <div class="health-card">
+      <h3><i class="bi bi-clock-history"></i> Recent Days</h3>
+      {{#if weeklyLogs.length}}
+        <ul class="text-sm text-gray-700 space-y-1">
+          {{#each weeklyLogs}}
+            <li>
+              <span class="font-medium">{{this.displayDate}}:</span>
+              <i class="bi bi-moon-stars"></i> {{this.sleep_hours}}h,
+              <i class="bi bi-activity"></i> {{this.steps}} steps,
+              <i class="bi bi-fire"></i> {{this.calories}} cal,
+              <i class="bi bi-water"></i> {{this.water_intake}}L,
+              <i class="bi bi-emoji-smile"></i> {{this.mood}}/5
+            </li>
+          {{/each}}
+        </ul>
+      {{else}}
+        <p class="health-subtext">No records found.</p>
+      {{/if}}
+    </div>
+  </div>
+
+  <div class="health-grid health-grid-2 mb-6">
+    <div class="health-card">
+      <h3 class="health-section-title"><i class="bi bi-clipboard-pulse"></i> Daily Health Log</h3>
+      <div class="mb-3">
+        <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-calendar"></i> Date</label>
+        <input id="healthDate" type="date" class="health-input" value="{{todayISO}}" />
+      </div>
+      <div class="mb-3">
+        <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-moon-stars"></i> Sleep Hours</label>
+        <input id="sleepHours" type="number" step="0.1" class="health-input" placeholder="e.g., 8"
+               value="{{todayLog.sleep_hours}}" />
+      </div>
+      <div class="mb-3">
+        <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-activity"></i> Steps</label>
+        <input id="steps" type="number" class="health-input" placeholder="e.g., 10000"
+               value="{{todayLog.steps}}" />
+      </div>
+      <div class="mb-3">
+        <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-fire"></i> Calories (kcal)</label>
+        <input id="calories" type="number" class="health-input" placeholder="e.g., 2000"
+               value="{{todayLog.calories}}" />
+      </div>
+      <div class="mb-3">
+        <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-water"></i> Water Intake (L)</label>
+        <input id="water" type="number" step="0.1" class="health-input" placeholder="e.g., 2.5"
+               value="{{todayLog.water_intake}}" />
+      </div>
+      <div class="mb-4">
+        <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-emoji-smile"></i> Mood (1-5)</label>
+        <input id="mood" type="number" min="1" max="5" class="health-input" placeholder="1-5"
+               value="{{todayLog.mood}}" />
+      </div>
+      <div class="mb-3">
+        <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-rulers"></i> Height (cm)</label>
+        <input id="heightCm" type="number" step="0.1" class="health-input" placeholder="e.g., 170"
+               value="{{user.height_cm}}" />
+      </div>
+      <div class="mb-3">
+        <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-weight"></i> Weight (kg)</label>
+        <input id="weightKg" type="number" step="0.1" class="health-input" placeholder="e.g., 65"
+               value="{{user.weight_kg}}" />
+      </div>
+      <div class="mb-3">
+        <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-hospital"></i> Medical Conditions</label>
+        <textarea id="medicalConditions" class="health-textarea" rows="2" placeholder="e.g., Diabetes, Hypertension (optional)">{{user.medical_conditions}}</textarea>
+      </div>
+      <button id="btnSaveLog" class="health-btn-primary"><i class="bi bi-check-circle"></i> Save Log</button>
+    </div>
+
+    <div class="health-card">
+      <h3 class="health-section-title"><i class="bi bi-fire"></i> Calorie Calculator</h3>
+      <input
+        id="foodInput"
+        class="health-input mb-3"
+        placeholder="e.g., 150g chicken, 1 cup rice"
+      />
+      <button id="btnCalorie" class="health-btn-ghost mb-2"><i class="bi bi-calculator"></i> Calculate Calories</button>
+      <div id="calorieResult" class="health-result"></div>
+    </div>
+  </div>
+
+  <div class="health-grid health-grid-2 mb-6">
+    <div class="health-card">
+      <h3 class="health-section-title"><i class="bi bi-cup-hot"></i> Meal Plan Generator</h3>
+      <div class="mb-3">
+        <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-target"></i> Goal</label>
+        <select id="mealGoal" class="health-select">
+          <option value="Lose weight">Lose Weight</option>
+          <option value="Maintain weight" selected>Maintain Weight</option>
+          <option value="Gain weight">Gain Weight</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-info-circle"></i> Additional Info</label>
+        <textarea
+          id="mealCondition"
+          class="health-textarea"
+          rows="3"
+          placeholder="e.g., Health status, allergies, dietary restrictions..."
+        ></textarea>
+      </div>
+      <button id="btnMeal" class="health-btn-primary mb-2"><i class="bi bi-stars"></i> Get Meal Suggestions</button>
+      <div class="health-subtext mb-1">
+        <i class="bi bi-lightbulb"></i> Prefer balanced, low-fat, nutrient-rich meals.
+      </div>
+      <div id="mealResult" class="health-result"></div>
+    </div>
+
+    <div class="health-card">
+      <h3 class="health-section-title"><i class="bi bi-thermometer"></i> Symptom Checker</h3>
+      <label class="text-xs font-semibold text-gray-700 mb-1"><i class="bi bi-chat-dots"></i> Describe Your Symptoms</label>
+      <textarea
+        id="symptomInput"
+        class="health-textarea mb-3"
+        rows="4"
+        placeholder="e.g., Headache, dizziness, insomnia for several days..."
+      ></textarea>
+      <button id="btnSymptom" class="health-btn-ghost mb-2"><i class="bi bi-search"></i> Check Symptoms</button>
+      <div id="symptomResult" class="health-result"></div>
+      <p class="health-subtext mt-2">
+        <i class="bi bi-exclamation-triangle"></i> <strong>Disclaimer:</strong> This is for informational purposes only and cannot replace professional medical advice. Please consult a healthcare provider for persistent symptoms.
+      </p>
+    </div>
+  </div>
+
+  <div class="health-card mb-6">
+    <h3 class="health-section-title"><i class="bi bi-calendar-week"></i> Weekly Health Analysis</h3>
+    <p class="health-subtext mb-3">
+      <i class="bi bi-info-circle"></i> Analyzes your data from the last 7 days and provides personalized health recommendations for the week ahead.
+    </p>
+    <button id="btnWeeklyAdvice" class="health-btn-primary mb-3">
+      <i class="bi bi-graph-up"></i> Analyse Last 7 Days
+    </button>
+    <div id="weeklyAdvice" class="health-result"></div>
+  </div>
+</div>
