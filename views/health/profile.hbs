@@ -1,0 +1,175 @@
+<link rel="stylesheet" href="/css/profile.css">
+
+<div class="health-profile">
+  <div class="mb-4 flex justify-start">
+    <a href="/health" class="health-btn-primary" style="text-decoration: none; display: inline-block;">
+      <i class="bi bi-arrow-left"></i> Back to Health Dashboard
+    </a>
+  </div>
+
+  <div class="health-grid health-grid-1 mb-6">
+    <div class="health-card">
+      <h2 style="font-size: 2rem; font-weight: bold; margin-bottom: 1.5rem;">
+        <i class="bi bi-heart-pulse"></i> Health Profile
+      </h2>
+      
+      <div class="mb-6">
+        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">
+          <i class="bi bi-person-fill"></i> Personal Information
+        </h3>
+        <p class="health-subtext mb-2"><strong>Name:</strong> {{user.full_name}}</p>
+        <p class="health-subtext"><strong>User ID:</strong> {{user.user_id}}</p>
+      </div>
+
+      <div class="mb-6">
+        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">
+          <i class="bi bi-graph-up"></i> Health Metrics
+        </h3>
+        <form id="profileForm">
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2"><i class="bi bi-rulers"></i> Height (cm)</label>
+            <input
+              id="heightCm"
+              type="number"
+              step="0.1"
+              class="health-input w-full"
+              placeholder="e.g., 170"
+              value="{{user.height_cm}}"
+            />
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2"><i class="bi bi-speedometer"></i> Weight (kg)</label>
+            <input
+              id="weightKg"
+              type="number"
+              step="0.1"
+              class="health-input w-full"
+              placeholder="e.g., 65"
+              value="{{user.weight_kg}}"
+            />
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2"><i class="bi bi-hospital"></i> Medical Conditions</label>
+            <textarea
+              id="medicalConditions"
+              class="health-textarea w-full"
+              rows="4"
+              placeholder="e.g., Type 2 diabetes, high blood pressure (optional)"
+            >{{user.medical_conditions}}</textarea>
+          </div>
+
+          <button type="button" id="btnUpdateProfile" class="health-btn-primary w-full">
+            <i class="bi bi-floppy"></i> Save Changes
+          </button>
+        </form>
+        <div id="updateMessage" class="update-message"></div>
+      </div>
+
+      <div class="mb-6">
+        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">
+          <i class="bi bi-clock-history"></i> Update History
+        </h3>
+        {{#if history.length}}
+          <div style="overflow-x: auto;">
+            <table class="w-full text-sm">
+              <thead>
+                <tr>
+                  <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid #e0a8d8;">Date</th>
+                  <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid #e0a8d8;">Height (cm)</th>
+                  <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid #e0a8d8;">Weight (kg)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each history}}
+                  <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 0.5rem;">{{formatDate this.created_at}}</td>
+                    <td style="padding: 0.5rem;">{{this.height_cm}}</td>
+                    <td style="padding: 0.5rem;">{{this.weight_kg}}</td>
+                  </tr>
+                {{/each}}
+              </tbody>
+            </table>
+          </div>
+        {{else}}
+          <p class="health-subtext"><i class="bi bi-info-circle"></i> No history yet.</p>
+        {{/if}}
+      </div>
+
+      <div class="mb-6">
+        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">
+          <i class="bi bi-calculator"></i> BMI Calculator
+        </h3>
+        {{#if user.height_cm}}
+          {{#if user.weight_kg}}
+            <div class="bmi-result">
+              <p><strong>Height:</strong> {{user.height_cm}} cm</p>
+              <p><strong>Weight:</strong> {{user.weight_kg}} kg</p>
+              <p id="bmiValue" class="bmi-value"></p>
+            </div>
+          {{else}}
+            <p class="health-subtext"><i class="bi bi-exclamation-circle"></i> Please enter your weight to calculate BMI.</p>
+          {{/if}}
+        {{else}}
+          <p class="health-subtext"><i class="bi bi-exclamation-circle"></i> Please enter your height to calculate BMI.</p>
+        {{/if}}
+      </div>
+    </div>
+  </div>
+
+  <div class="health-card">
+    <p class="health-subtext" style="font-size: 0.85rem;">
+      <i class="bi bi-info-circle"></i> This information helps AI provide personalized health recommendations. Please update when your health metrics change.
+    </p>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const btnUpdate = document.getElementById("btnUpdateProfile");
+  const messageDiv = document.getElementById("updateMessage");
+
+  if (btnUpdate) {
+    btnUpdate.onclick = async () => {
+      const height_cm = document.getElementById("heightCm").value;
+      const weight_kg = document.getElementById("weightKg").value;
+      const medical_conditions = document.getElementById("medicalConditions").value;
+
+      const res = await fetch("/health/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ height_cm, weight_kg, medical_conditions }),
+      });
+
+      const data = await res.json();
+      messageDiv.className = `update-message ${data.success ? "success" : "error"}`;
+      messageDiv.innerHTML = `<i class="bi ${data.success ? "bi-check-circle" : "bi-exclamation-circle"}"></i> ${data.message}`;
+
+      if (data.success) {
+        setTimeout(() => location.reload(), 1500);
+      }
+    };
+  }
+
+  // Calculate BMI
+  const height = parseFloat(document.getElementById("heightCm").value);
+  const weight = parseFloat(document.getElementById("weightKg").value);
+  
+  if (height && weight) {
+    const heightM = height / 100;
+    const bmi = (weight / (heightM * heightM)).toFixed(1);
+    let category = "";
+    
+    if (bmi < 18.5) category = "Underweight";
+    else if (bmi < 25) category = "Normal";
+    else if (bmi < 30) category = "Overweight";
+    else category = "Obese";
+
+    const bmiValue = document.getElementById("bmiValue");
+    if (bmiValue) {
+      bmiValue.innerHTML = `BMI: <span style="font-size: 2rem;">${bmi}</span> - <span style="font-size: 1.125rem;">${category}</span>`;
+    }
+  }
+});
+</script>

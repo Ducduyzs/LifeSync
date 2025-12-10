@@ -1,12 +1,12 @@
 {{#if user}}
 <aside class="flex flex-row h-screen">
-  <!-- 🌓 Thanh 1: icon ngày/đêm -->
+  <!-- Thanh 1: icon ngày/đêm -->
   <div class="w-16 flex flex-col justify-center items-center shadow-md"
      style="background-color: #DF9090;">
     </button>
   </div>
 
-  <!-- 🌸 Thanh 2: menu chính -->
+  <!-- Thanh 2: menu chính -->
   <div class="w-64 bg-pink-200 flex flex-col items-center py-6 space-y-4 shadow-inner"
      style="background-color: #F1B6B6;">
 
@@ -14,7 +14,12 @@
     <button class="btn-menu">My day</button>
     <button class="btn-menu">Week</button>
     <button class="btn-menu">Month</button>
-    <button class="btn-menu">Health</button>
+
+    <button class="btn-menu" onclick="location.href='/health'">Health</button>
+
+
+
+
   </div>
 </aside>
 {{/if}}
