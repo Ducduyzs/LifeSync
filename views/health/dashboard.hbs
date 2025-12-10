@@ -1,9 +1,43 @@
 <div class="health-dashboard">
 
-  <div class="mb-4 flex justify-end">
+  <div class="mb-4 flex justify-between items-center">
+    <h2 style="margin: 0;"><i class="bi bi-heart-pulse"></i> Health Dashboard</h2>
     <a href="/health/profile" class="health-btn-ghost" style="padding: 0.5rem 1rem; font-size: 0.95rem;">
       <i class="bi bi-person-check"></i> View/Edit Profile
     </a>
+  </div>
+
+  <!-- Health Status Today -->
+  <div class="health-card mb-6" id="healthStatusToday">
+    <h3 style="margin-top: 0;"><i class="bi bi-thermometer"></i> Today's Health Status</h3>
+    <div id="healthStatusContent" class="health-status-loading">
+      <p style="text-align: center; color: #999;">Loading health status...</p>
+    </div>
+  </div>
+
+  <!-- Upcoming Appointments -->
+  <div class="health-card mb-6">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="margin: 0;"><i class="bi bi-calendar-event"></i> Upcoming Appointments</h3>
+      <button class="health-btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" id="btnAddAppointment">
+        <i class="bi bi-plus-circle"></i> Add
+      </button>
+    </div>
+    <div id="appointmentsList" class="health-appointments-list">
+      <p style="color: #999; text-align: center;">Loading appointments...</p>
+    </div>
+  </div>
+
+  <!-- Health Metrics Charts -->
+  <div class="health-grid health-grid-2 mb-6">
+    <div class="health-card">
+      <h3><i class="bi bi-graph-up"></i> Weight & BMI Trend</h3>
+      <canvas id="chartWeightBMI" style="max-height: 250px;"></canvas>
+    </div>
+    <div class="health-card">
+      <h3><i class="bi bi-bar-chart"></i> Health Metrics (30 Days)</h3>
+      <canvas id="chartMetrics" style="max-height: 250px;"></canvas>
+    </div>
   </div>
 
   <div class="health-grid health-grid-3 mb-6">
@@ -170,3 +204,5 @@
     <div id="weeklyAdvice" class="health-result"></div>
   </div>
 </div>
+
+<script src="/js/health-dashboard.js"></script>

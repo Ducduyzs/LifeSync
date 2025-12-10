@@ -164,12 +164,12 @@ router.post("/ai/calories", async (req, res) => {
 You are a certified nutrition expert.
 The user describes their meal as follows: "${text}".
 
-Please provide:
-1) Total estimated calories.
-2) Breakdown of calories by main components (if identifiable).
-3) Brief assessment of whether this portion is light, moderate, or heavy for an average adult.
+Please provide in plain text numbered format without markdown:
+1. Total estimated calories
+2. Breakdown of calories by main components (if identifiable)
+3. Brief assessment of whether this portion is light, moderate, or heavy for an average adult
 
-Respond in English, concisely and clearly.`;
+Respond clearly and concisely, without using asterisks, hashtags, dashes or markdown syntax.`;
     const answer = await hfText(profileText + prompt, { maxTokens: 8192 });
     res.json({ success: true, answer });
   } catch (err) {
@@ -204,17 +204,14 @@ You are a personal nutrition specialist.
 User's goal: ${goal}.
 Current health status: ${condition || "not specified"}.
 
-Please suggest a 1-day meal plan including:
-- Breakfast
-- Lunch
-- Dinner
-- 1-2 snacks
+Please suggest a 1-day meal plan in plain text numbered format without markdown:
+1. Breakfast - suggest specific dishes and explain why they suit the goal and health status
+2. Lunch - suggest specific dishes and explain why they suit the goal and health status
+3. Dinner - suggest specific dishes and explain why they suit the goal and health status
+4. Snacks (1-2) - suggest snacks and explain why they suit the goal and health status
 
-For each meal:
-- Suggest specific dishes.
-- Explain why each meal is suitable for the goal and health status.
 Prefer common, locally available foods.
-Respond in English with clear bullet points and organized formatting.`;
+Respond without using asterisks, hashtags, dashes or markdown syntax.`;
     const answer = await hfText(profileText + prompt, { maxTokens: 8192 });
     res.json({ success: true, answer });
   } catch (err) {
@@ -248,14 +245,14 @@ router.post("/ai/symptom", async (req, res) => {
 You are a health assistant.
 The user describes their symptoms: "${text}".
 
-Please respond with the following structure:
-1) Possible causes (explained simply without overly technical terms).
-2) Severity level (low, moderate, high).
-3) When to seek immediate medical attention.
-4) Safe home care suggestions (temporary measures only).
+Please respond in plain text numbered format without markdown:
+1. Possible causes (explained simply without overly technical terms)
+2. Severity level (low, moderate, or high)
+3. When to seek immediate medical attention
+4. Safe home care suggestions (temporary measures only)
 
 Important: Do not make definitive diagnoses. Always remind the user to see a healthcare provider if symptoms worsen or persist.
-Respond in English, clearly and comprehensibly.`;
+Respond clearly without using asterisks, hashtags, dashes or markdown syntax.`;
     const answer = await hfText(profileText + prompt, { maxTokens: 8192 });
     res.json({ success: true, answer });
   } catch (err) {
@@ -321,13 +318,13 @@ Below is a user's health data from the last 7 days:
 
 ${summaryLines}
 
-Please provide:
-1) Overall assessment of sleep quality, physical activity, nutrition, water intake, and mood.
-2) Identify unhealthy habits that need improvement.
-3) Suggest a concrete 7-day action plan (3-5 specific, immediately actionable recommendations).
-4) Remind the user to consult a healthcare provider if they notice unusual or persistent symptoms.
+Please provide in plain text numbered format without markdown:
+1. Overall assessment of sleep quality, physical activity, nutrition, water intake, and mood
+2. Identify unhealthy habits that need improvement
+3. Suggest a concrete 7-day action plan with 3-5 specific, immediately actionable recommendations
+4. Remind the user to consult a healthcare provider if they notice unusual or persistent symptoms
 
-Respond in English, clearly and accessibly.`;
+Respond clearly without using asterisks, hashtags, dashes or markdown syntax.`;
     const answer = await hfText(profileText + prompt, { maxTokens: 8192 });
     res.json({ success: true, answer });
   } catch (err) {
@@ -403,6 +400,247 @@ router.post("/profile/update", async (req, res) => {
       success: false,
       message: "Error updating health profile.",
     });
+  }
+});
+
+// Health appointments management
+router.get("/appointments", async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) return res.redirect("/auth/login");
+
+    const appointments = await db.query(
+      `SELECT id, appointment_date, appointment_time, reason, medical_condition, notes, status
+       FROM health_appointments
+       WHERE user_id = $1 AND appointment_date >= CURRENT_DATE
+       ORDER BY appointment_date ASC, appointment_time ASC`,
+      [userId]
+    );
+
+    res.json({ success: true, appointments });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Error fetching appointments." });
+  }
+});
+
+router.get("/appointments/:id", async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) {
+      return res.json({ success: false, message: "You are not logged in." });
+    }
+
+    const { id } = req.params;
+    const result = await db.query(
+      `SELECT id, appointment_date, appointment_time, reason, medical_condition, notes, status
+       FROM health_appointments
+       WHERE id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+
+    if (result.length === 0) {
+      return res.json({ success: false, message: "Appointment not found." });
+    }
+
+    res.json({ success: true, appointment: result[0] });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Error fetching appointment." });
+  }
+});
+
+router.post("/appointments/add", async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) {
+      return res.json({ success: false, message: "You are not logged in." });
+    }
+
+    const { appointment_date, appointment_time, reason, medical_condition, notes } = req.body;
+
+    await db.query(
+      `INSERT INTO health_appointments 
+       (user_id, appointment_date, appointment_time, reason, medical_condition, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [userId, appointment_date, appointment_time || null, reason, medical_condition || null, notes || null]
+    );
+
+    res.json({ success: true, message: "Appointment added successfully." });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Error adding appointment." });
+  }
+});
+
+router.post("/appointments/update/:id", async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) {
+      return res.json({ success: false, message: "You are not logged in." });
+    }
+
+    const { id } = req.params;
+    const { appointment_date, appointment_time, reason, medical_condition, notes, status } = req.body;
+
+    await db.query(
+      `UPDATE health_appointments 
+       SET appointment_date = $1, appointment_time = $2, reason = $3, 
+           medical_condition = $4, notes = $5, status = $6, updated_at = NOW()
+       WHERE id = $7 AND user_id = $8`,
+      [appointment_date, appointment_time || null, reason, medical_condition || null, notes || null, status, id, userId]
+    );
+
+    res.json({ success: true, message: "Appointment updated successfully." });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Error updating appointment." });
+  }
+});
+
+router.delete("/appointments/:id", async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) {
+      return res.json({ success: false, message: "You are not logged in." });
+    }
+
+    const { id } = req.params;
+
+    await db.query(
+      `DELETE FROM health_appointments WHERE id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+
+    res.json({ success: true, message: "Appointment deleted successfully." });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Error deleting appointment." });
+  }
+});
+
+// Health metrics charts data
+router.get("/charts/weight-bmi", async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) return res.redirect("/auth/login");
+
+    const data = await db.query(
+      `SELECT created_at as date, weight_kg, height_cm
+       FROM user_health_profile_history
+       WHERE user_id = $1
+       ORDER BY created_at ASC
+       LIMIT 30`,
+      [userId]
+    );
+
+    const chartData = data.map(row => {
+      const bmi = row.height_cm ? (row.weight_kg / ((row.height_cm / 100) ** 2)).toFixed(1) : null;
+      return {
+        date: new Date(row.date).toLocaleDateString("en-US"),
+        weight: parseFloat(row.weight_kg),
+        bmi: bmi ? parseFloat(bmi) : null
+      };
+    });
+
+    res.json({ success: true, data: chartData });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, data: [] });
+  }
+});
+
+router.get("/charts/health-metrics", async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) return res.redirect("/auth/login");
+
+    const data = await db.query(
+      `SELECT date, sleep_hours, steps, calories, water_intake, mood
+       FROM health_logs
+       WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '30 days'
+       ORDER BY date ASC`,
+      [userId]
+    );
+
+    const chartData = data.map(row => ({
+      date: new Date(row.date).toLocaleDateString("en-US"),
+      sleep: parseFloat(row.sleep_hours) || 0,
+      steps: parseInt(row.steps) || 0,
+      calories: parseInt(row.calories) || 0,
+      water: parseFloat(row.water_intake) || 0,
+      mood: parseInt(row.mood) || 0
+    }));
+
+    res.json({ success: true, data: chartData });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, data: [] });
+  }
+});
+
+router.get("/health-status-today", async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) return res.redirect("/auth/login");
+
+    const todayLog = await db.query(
+      `SELECT sleep_hours, steps, calories, water_intake, mood FROM health_logs
+       WHERE user_id = $1 AND date = CURRENT_DATE`,
+      [userId]
+    );
+
+    const user = await db.query(
+      `SELECT height_cm, weight_kg, medical_conditions FROM users WHERE user_id = $1`,
+      [userId]
+    );
+
+    const yesterday = await db.query(
+      `SELECT sleep_hours, steps, calories, water_intake, mood FROM health_logs
+       WHERE user_id = $1 AND date = CURRENT_DATE - INTERVAL '1 day'`,
+      [userId]
+    );
+
+    const today = todayLog[0] || {};
+    const userProfile = user[0] || {};
+    const yesterdayLog = yesterday[0] || {};
+
+    // Calculate BMI
+    let bmi = null;
+    if (userProfile.height_cm && userProfile.weight_kg) {
+      bmi = (userProfile.weight_kg / ((userProfile.height_cm / 100) ** 2)).toFixed(1);
+    }
+
+    // Compare with yesterday
+    const comparison = {
+      sleep: today.sleep_hours && yesterdayLog.sleep_hours 
+        ? today.sleep_hours > yesterdayLog.sleep_hours ? "improved" : "declined"
+        : "no_data",
+      steps: today.steps && yesterdayLog.steps 
+        ? today.steps > yesterdayLog.steps ? "improved" : "declined"
+        : "no_data",
+      calories: today.calories && yesterdayLog.calories 
+        ? today.calories > yesterdayLog.calories ? "increased" : "decreased"
+        : "no_data",
+      water: today.water_intake && yesterdayLog.water_intake 
+        ? today.water_intake > yesterdayLog.water_intake ? "improved" : "declined"
+        : "no_data",
+      mood: today.mood && yesterdayLog.mood 
+        ? today.mood > yesterdayLog.mood ? "improved" : "declined"
+        : "no_data"
+    };
+
+    res.json({
+      success: true,
+      today,
+      userProfile,
+      bmi,
+      comparison,
+      hasData: Object.keys(today).length > 0
+    });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Error fetching health status." });
   }
 });
 
