@@ -1,0 +1,22 @@
+.node-item .children {
+  margin-left: 14px;
+}
+#btnEditProject,
+#btnAddBranch,
+#btnDeleteProject {
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+#btnEditProject:hover,
+#btnAddBranch:hover,
+#btnDeleteProject:hover {
+  transform: translateY(-1px);
+}
+#projectDeleteModal {
+  z-index: 12000 !important;
+}
+
+#projectDetailModal {
+  z-index: 11000 !important;
+}

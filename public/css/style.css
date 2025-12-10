@@ -46,13 +46,23 @@ body.dark .btn-menu:hover {
 
 .btn-today {
   background: #fff;
+  color: #DF9090;
   border: 1px solid #ffd1d8;
   border-radius: 12px;
   padding: 6px 14px;
-  transition: 0.2s;
+  font-weight: 600;
+  transition: all 0.25s ease;
 }
+
+.btn-today:hover {
+  background: #ffe4ea;
+  border-color: #ffc2cd;
+}
+
+/* Khi là ngày hôm nay */
 .btn-today.active {
   background: #ff9fb2;
   color: #fff;
   border-color: #ff9fb2;
+  box-shadow: 0 3px 6px rgba(255, 159, 178, 0.4);
 }
