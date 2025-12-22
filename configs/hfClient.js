@@ -1,7 +1,8 @@
+// NOTE: Gemini AI client wrapper — returns plain text via hfText(prompt, opts)
 import dotenv from "dotenv";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-dotenv.config();
+dotenv.config(); 
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";

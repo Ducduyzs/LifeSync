@@ -33,6 +33,14 @@ router.get("/", async (req, res) => {
       [userId]
     );
 
+    try {
+      const totalLogs = await db.query(`SELECT COUNT(*) AS cnt FROM health_logs WHERE user_id = $1`, [userId]);
+      const totalAppointments = await db.query(`SELECT COUNT(*) AS cnt FROM health_appointments WHERE user_id = $1`, [userId]);
+      console.debug(`Health debug: user ${userId} - totalLogs=${totalLogs[0].cnt}, weeklyRows=${weeklyRows.length}, totalAppointments=${totalAppointments[0].cnt}`);
+    } catch (dbgErr) {
+      console.debug('Health debug: error fetching counts', dbgErr.message);
+    }
+
     let stats = {
       avg_sleep: null,
       avg_steps: null,
@@ -73,6 +81,24 @@ router.get("/", async (req, res) => {
       }),
     }));
 
+    const recentRows = await db.query(
+      `SELECT date, sleep_hours, steps, calories, water_intake, mood
+       FROM health_logs
+       WHERE user_id = $1
+       ORDER BY date DESC
+       LIMIT 10`,
+      [userId]
+    );
+
+    const recentLogs = recentRows.map((r) => ({
+      ...r,
+      displayDate: new Date(r.date).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }),
+    }));
+
     const todayISO = new Date().toISOString().split("T")[0];
 
     res.render("health/dashboard", {
@@ -80,6 +106,7 @@ router.get("/", async (req, res) => {
       user,
       todayLog,
       weeklyLogs,
+      recentLogs,
       stats,
       todayISO,
     });
@@ -89,7 +116,10 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/save-log", async (req, res) => {
+import { validateSaveLog, validateAppointment } from "../validators/health.js";
+import { validateGoalPayload } from "../validators/goals.js";
+
+router.post("/save-log", validateSaveLog, async (req, res) => {
   try {
     const userId = req.session.user_id;
     if (!userId) {
@@ -99,14 +129,12 @@ router.post("/save-log", async (req, res) => {
     let { date, sleep_hours, steps, calories, water_intake, mood, height_cm, weight_kg, medical_conditions } = req.body;
     const logDate = date || new Date().toISOString().split("T")[0];
 
-    // Try to persist profile info to users table (if columns exist)
     try {
       await db.query(
         `UPDATE users SET height_cm = $1, weight_kg = $2, medical_conditions = $3 WHERE user_id = $4`,
         [height_cm || null, weight_kg || null, medical_conditions || null, userId]
       );
     } catch (err) {
-      // If DB doesn't have these columns, ignore but log
       console.warn('Could not update user profile fields:', err.message);
     }
 
@@ -124,11 +152,11 @@ router.post("/save-log", async (req, res) => {
       [
         userId,
         logDate,
-        sleep_hours || null,
-        steps || null,
-        calories || null,
-        water_intake || null,
-        mood || null,
+        req.body.sleep_hours || null,
+        req.body.steps || null,
+        req.body.calories || null,
+        req.body.water_intake || null,
+        req.body.mood || null,
       ]
     );
 
@@ -139,6 +167,54 @@ router.post("/save-log", async (req, res) => {
       success: false,
       message: "Error saving health log.",
     });
+  }
+});
+
+router.post('/appointments/add', validateAppointment, async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) {
+      return res.json({ success: false, message: "You are not logged in." });
+    }
+
+    const { appointment_date, appointment_time, reason, medical_condition, notes } = req.body;
+
+    await db.query(
+      `INSERT INTO health_appointments 
+       (user_id, appointment_date, appointment_time, reason, medical_condition, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [userId, appointment_date, appointment_time || null, reason, medical_condition || null, notes || null]
+    );
+
+    res.json({ success: true, message: "Appointment added successfully." });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Error adding appointment." });
+  }
+});
+
+router.post('/appointments/update/:id', validateAppointment, async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) {
+      return res.json({ success: false, message: "You are not logged in." });
+    }
+
+    const { id } = req.params;
+    const { appointment_date, appointment_time, reason, medical_condition, notes, status } = req.body;
+
+    await db.query(
+      `UPDATE health_appointments 
+       SET appointment_date = $1, appointment_time = $2, reason = $3, 
+           medical_condition = $4, notes = $5, status = $6, updated_at = NOW()
+       WHERE id = $7 AND user_id = $8`,
+      [appointment_date, appointment_time || null, reason, medical_condition || null, notes || null, status, id, userId]
+    );
+
+    res.json({ success: true, message: "Appointment updated successfully." });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Error updating appointment." });
   }
 });
 
@@ -336,7 +412,6 @@ Respond clearly without using asterisks, hashtags, dashes or markdown syntax.`;
   }
 });
 
-// Profile management
 router.get("/profile", async (req, res) => {
   try {
     const userId = req.session.user_id;
@@ -348,7 +423,6 @@ router.get("/profile", async (req, res) => {
     );
     const user = userRows[0] || {};
 
-    // Get history of weight/height changes
     const historyRows = await db.query(
       `SELECT * FROM user_health_profile_history 
        WHERE user_id = $1 
@@ -376,13 +450,11 @@ router.post("/profile/update", async (req, res) => {
 
     const { height_cm, weight_kg, medical_conditions } = req.body;
 
-    // Update user profile
     await db.query(
       `UPDATE users SET height_cm = $1, weight_kg = $2, medical_conditions = $3 WHERE user_id = $4`,
       [height_cm || null, weight_kg || null, medical_conditions || null, userId]
     );
 
-    // Record to history (if table exists)
     try {
       await db.query(
         `INSERT INTO user_health_profile_history (user_id, height_cm, weight_kg, medical_conditions)
@@ -403,7 +475,6 @@ router.post("/profile/update", async (req, res) => {
   }
 });
 
-// Health appointments management
 router.get("/appointments", async (req, res) => {
   try {
     const userId = req.session.user_id;
@@ -421,6 +492,112 @@ router.get("/appointments", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.json({ success: false, message: "Error fetching appointments." });
+  }
+});
+
+router.get('/debug', async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) return res.json({ success: false, message: 'You are not logged in.' });
+
+    const counts = await db.query(`SELECT COUNT(*) AS cnt FROM health_logs WHERE user_id = $1`, [userId]);
+    const appointmentsCount = await db.query(`SELECT COUNT(*) AS cnt FROM health_appointments WHERE user_id = $1`, [userId]);
+    const recentLogs = await db.query(`SELECT date, sleep_hours, steps, calories, water_intake, mood FROM health_logs WHERE user_id = $1 ORDER BY date DESC LIMIT 10`, [userId]);
+    const recentAppointments = await db.query(`SELECT id, appointment_date, appointment_time, reason, status FROM health_appointments WHERE user_id = $1 ORDER BY appointment_date DESC LIMIT 10`, [userId]);
+
+    return res.json({ success: true, counts: { logs: counts[0].cnt, appointments: appointmentsCount[0].cnt }, recentLogs, recentAppointments });
+  } catch (err) {
+    console.error('Debug endpoint error:', err);
+    return res.json({ success: false, message: 'Error fetching debug info.' });
+  }
+});
+
+
+async function computeGoalProgress(userId, goal) {
+  if (!userId || !goal) return { progress: 0, achieved: false, streak: 0 };
+
+  let value = 0;
+  if (goal.period === 'daily') {
+    const row = await db.query(`SELECT SUM(COALESCE(${goal.goal_type === 'steps' ? 'steps' : goal.goal_type === 'calories' ? 'calories' : goal.goal_type === 'water' ? 'water_intake' : 'sleep_hours'},0)) AS val FROM health_logs WHERE user_id = $1 AND date = CURRENT_DATE`, [userId]);
+    value = Number(row[0].val) || 0;
+  } else {
+    if (goal.goal_type === 'sleep') {
+      const row = await db.query(`SELECT AVG(COALESCE(sleep_hours,0)) AS val FROM health_logs WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '6 days'`, [userId]);
+      value = Number(row[0].val) || 0;
+    } else {
+      const col = goal.goal_type === 'steps' ? 'steps' : goal.goal_type === 'calories' ? 'calories' : 'water_intake';
+      const row = await db.query(`SELECT SUM(COALESCE(${col},0)) AS val FROM health_logs WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '6 days'`, [userId]);
+      value = Number(row[0].val) || 0;
+    }
+  }
+
+  const progress = Math.min(100, Math.round((value / Number(goal.target)) * 100));
+
+  let streak = 0;
+  try {
+    const streakQuery = `
+      SELECT date, ${goal.goal_type === 'sleep' ? 'sleep_hours' : goal.goal_type === 'steps' ? 'steps' : goal.goal_type === 'calories' ? 'calories' : 'water_intake'} as val
+      FROM health_logs
+      WHERE user_id = $1 AND date <= CURRENT_DATE
+      ORDER BY date DESC
+      LIMIT 30`;
+    const rows = await db.query(streakQuery, [userId]);
+    for (const r of rows) {
+      const val = Number(r.val || 0);
+      if (goal.goal_type === 'sleep') {
+        if (val >= Number(goal.target)) streak++; else break;
+      } else {
+        if (val >= Number(goal.target)) streak++; else break;
+      }
+    }
+  } catch (sErr) {
+    console.debug('Streak calc error', sErr.message);
+  }
+
+  return { progress, value, achieved: value >= Number(goal.target), streak };
+}
+
+router.get('/goals', async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) return res.json({ success: false, message: 'You are not logged in.' });
+    const goals = await db.query(`SELECT id, goal_type, target, period, created_at FROM health_goals WHERE user_id = $1 ORDER BY created_at DESC`, [userId]);
+    const out = [];
+    for (const g of goals) {
+      const stats = await computeGoalProgress(userId, g);
+      out.push({ ...g, ...stats });
+    }
+    res.json({ success: true, goals: out });
+  } catch (err) {
+    console.error('Error fetching goals:', err);
+    res.json({ success: false, message: 'Error fetching goals.' });
+  }
+});
+
+router.post('/goals', validateGoalPayload, async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) return res.json({ success: false, message: 'You are not logged in.' });
+    const { goal_type, target, period } = req.body;
+
+    await db.query(`INSERT INTO health_goals (user_id, goal_type, target, period) VALUES ($1,$2,$3,$4) ON CONFLICT (user_id, goal_type, period) DO UPDATE SET target = EXCLUDED.target, created_at = NOW()`, [userId, goal_type, target, period]);
+    res.json({ success: true, message: 'Goal saved.' });
+  } catch (err) {
+    console.error('Error saving goal:', err);
+    res.json({ success: false, message: 'Error saving goal.' });
+  }
+});
+
+router.delete('/goals/:id', async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    if (!userId) return res.json({ success: false, message: 'You are not logged in.' });
+    const { id } = req.params;
+    await db.query(`DELETE FROM health_goals WHERE id = $1 AND user_id = $2`, [id, userId]);
+    res.json({ success: true, message: 'Goal removed.' });
+  } catch (err) {
+    console.error('Error deleting goal:', err);
+    res.json({ success: false, message: 'Error deleting goal.' });
   }
 });
 
@@ -519,7 +696,6 @@ router.delete("/appointments/:id", async (req, res) => {
   }
 });
 
-// Health metrics charts data
 router.get("/charts/weight-bmi", async (req, res) => {
   try {
     const userId = req.session.user_id;
@@ -605,13 +781,11 @@ router.get("/health-status-today", async (req, res) => {
     const userProfile = user[0] || {};
     const yesterdayLog = yesterday[0] || {};
 
-    // Calculate BMI
     let bmi = null;
     if (userProfile.height_cm && userProfile.weight_kg) {
       bmi = (userProfile.weight_kg / ((userProfile.height_cm / 100) ** 2)).toFixed(1);
     }
 
-    // Compare with yesterday
     const comparison = {
       sleep: today.sleep_hours && yesterdayLog.sleep_hours 
         ? today.sleep_hours > yesterdayLog.sleep_hours ? "improved" : "declined"

@@ -1,7 +1,118 @@
-// Load Chart.js library
 const chartScript = document.createElement('script');
 chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
 document.head.appendChild(chartScript);
+
+function showToast(message, type = 'success', timeout = 3000) {
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  void toast.offsetWidth;
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, timeout);
+}
+
+function showConfirm(message, options = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay confirm-overlay';
+    overlay.id = 'confirmOverlay';
+    overlay.innerHTML = `
+      <div class="modal-content confirm-content">
+        <div class="modal-header"><h3 id="confirmTitle">${options.title || 'Confirm'}</h3></div>
+        <div class="modal-body"><p>${message}</p></div>
+        <div class="modal-actions" style="display:flex; gap:0.5rem; justify-content:flex-end; padding:1rem;">
+          <button class="health-btn-ghost" id="confirmCancel">Cancel</button>
+          <button class="health-btn-primary" id="confirmOk">OK</button>
+        </div>
+      </div>
+    `;
+    const previouslyFocused = document.activeElement;
+    document.body.appendChild(overlay);
+
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'confirmTitle');
+
+    overlay._releaseFocus = trapFocus(overlay, '#confirmOk', previouslyFocused);
+
+    function cleanup() {
+      try { if (typeof overlay._releaseFocus === 'function') overlay._releaseFocus(); } catch(e) {}
+      overlay.remove();
+      document.removeEventListener('keydown', onKeyGlobal);
+    }
+
+    function onKeyGlobal(e) {
+      if (e.key === 'Escape') {
+        cleanup();
+        resolve(false);
+      }
+    }
+
+    document.getElementById('confirmOk').addEventListener('click', () => { cleanup(); resolve(true); });
+    document.getElementById('confirmCancel').addEventListener('click', () => { cleanup(); resolve(false); });
+    document.addEventListener('keydown', onKeyGlobal);
+  });
+} 
+
+window.showToast = showToast;
+window.showConfirm = showConfirm;
+
+function trapFocus(container, firstSelector, returnFocusTo) {
+  const focusableSel = 'a[href], area[href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  const nodes = Array.from(container.querySelectorAll(focusableSel)).filter(n => n.offsetParent !== null);
+  const first = (firstSelector && container.querySelector(firstSelector)) || nodes[0];
+  const last = nodes[nodes.length - 1];
+  let prevFocused = document.activeElement;
+
+  function onKey(e) {
+    if (e.key === 'Escape') {
+      const closeBtn = container.querySelector('.modal-close');
+      if (closeBtn) {
+        closeBtn.click();
+      }
+      e.preventDefault();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    if (nodes.length === 0) {
+      e.preventDefault();
+      return;
+    }
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        last.focus();
+        e.preventDefault();
+      }
+    } else {
+      if (document.activeElement === last) {
+        first.focus();
+        e.preventDefault();
+      }
+    }
+  }
+
+  container.addEventListener('keydown', onKey);
+  (first || nodes[0])?.focus();
+
+  return function release() {
+    container.removeEventListener('keydown', onKey);
+    try { if (returnFocusTo && returnFocusTo.focus) returnFocusTo.focus(); else if (prevFocused && prevFocused.focus) prevFocused.focus(); } catch(e) {}
+  };
+}
+
+window.trapFocus = trapFocus; 
 
 // Health Status Today
 async function loadHealthStatusToday() {
@@ -224,6 +335,14 @@ function showAddAppointmentModal() {
   `;
   document.body.insertAdjacentHTML('beforeend', html);
 
+  const modalEl = document.getElementById('appointmentModal');
+  if (modalEl) {
+    modalEl.setAttribute('role', 'dialog');
+    modalEl.setAttribute('aria-modal', 'true');
+    modalEl.querySelector('.modal-close')?.setAttribute('aria-label', 'Close appointment modal');
+    modalEl._releaseFocus = trapFocus(modalEl, '#aptDate');
+  }
+
   document.getElementById('appointmentForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const data = {
@@ -244,11 +363,12 @@ function showAddAppointmentModal() {
       if (result.success) {
         closeModal('appointmentModal');
         loadAppointments();
+        showToast('Appointment added successfully.', 'success');
       } else {
-        alert('Error: ' + result.message);
+        showToast('Error: ' + result.message, 'error');
       }
     } catch (err) {
-      alert('Error adding appointment');
+      showToast('Error adding appointment', 'error');
       console.error(err);
     }
   });
@@ -301,6 +421,14 @@ function editAppointment(id) {
         `;
         document.body.insertAdjacentHTML('beforeend', html);
 
+        const modalEl = document.getElementById('editAppointmentModal');
+        if (modalEl) {
+          modalEl.setAttribute('role', 'dialog');
+          modalEl.setAttribute('aria-modal', 'true');
+          modalEl.querySelector('.modal-close')?.setAttribute('aria-label', 'Close edit appointment modal');
+          modalEl._releaseFocus = trapFocus(modalEl, '#editAptDate');
+        }
+
         document.getElementById('editAppointmentForm').addEventListener('submit', async (e) => {
           e.preventDefault();
           const data = {
@@ -321,48 +449,51 @@ function editAppointment(id) {
             if (result.success) {
               closeModal('editAppointmentModal');
               loadAppointments();
+              showToast('Appointment updated successfully.', 'success');
             } else {
-              alert('Error: ' + result.message);
+              showToast('Error: ' + result.message, 'error');
             }
           } catch (err) {
-            alert('Error updating appointment');
+            showToast('Error updating appointment', 'error');
             console.error(err);
           }
         });
       }
     })
     .catch(err => {
-      alert('Error loading appointment');
+      showToast('Error loading appointment', 'error');
       console.error(err);
     });
 }
 
-function deleteAppointment(id) {
-  if (confirm('Are you sure you want to delete this appointment?')) {
-    fetch(`/health/appointments/${id}`, { method: 'DELETE' })
-      .then(res => res.json())
-      .then(result => {
-        if (result.success) {
-          loadAppointments();
-        } else {
-          alert('Error: ' + result.message);
-        }
-      })
-      .catch(err => {
-        alert('Error deleting appointment');
-        console.error(err);
-      });
+async function deleteAppointment(id) {
+  const ok = await showConfirm('Are you sure you want to delete this appointment?');
+  if (!ok) return;
+  try {
+    const res = await fetch(`/health/appointments/${id}`, { method: 'DELETE' });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Appointment deleted successfully.', 'success');
+      loadAppointments();
+    } else {
+      showToast('Error: ' + result.message, 'error');
+    }
+  } catch (err) {
+    showToast('Error deleting appointment', 'error');
+    console.error(err);
   }
 }
 
 function closeModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) modal.remove();
-}
+  if (!modal) return;
+  try { if (typeof modal._releaseFocus === 'function') modal._releaseFocus(); } catch (e) {}
+  modal.remove();
+} 
 
 // Load Charts
 async function loadCharts() {
-  chartScript.onload = async () => {
+  async function renderCharts() {
     try {
       // Weight & BMI Chart
       const weightResponse = await fetch('/health/charts/weight-bmi');
@@ -370,7 +501,7 @@ async function loadCharts() {
 
       if (weightData.success && weightData.data.length > 0) {
         const ctx1 = document.getElementById('chartWeightBMI');
-        if (ctx1) {
+        if (ctx1 && window.Chart) {
           new Chart(ctx1, {
             type: 'line',
             data: {
@@ -413,7 +544,7 @@ async function loadCharts() {
 
       if (metricsData.success && metricsData.data.length > 0) {
         const ctx2 = document.getElementById('chartMetrics');
-        if (ctx2) {
+        if (ctx2 && window.Chart) {
           new Chart(ctx2, {
             type: 'bar',
             data: {
@@ -452,7 +583,15 @@ async function loadCharts() {
     } catch (err) {
       console.error('Error loading charts:', err);
     }
-  };
+  }
+
+  // If Chart.js already loaded, render immediately; else wait for load
+  if (window.Chart) {
+    renderCharts();
+  } else {
+    chartScript.addEventListener('load', renderCharts, { once: true });
+    chartScript.addEventListener('error', () => console.error('Failed to load Chart.js'));
+  }
 }
 
 // Initialize on page load

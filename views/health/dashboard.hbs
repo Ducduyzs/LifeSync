@@ -1,4 +1,5 @@
-<div class="health-dashboard">
+<div class="health-scrollable">
+  <div class="health-dashboard">
 
   <div class="mb-4 flex justify-between items-center">
     <h2 style="margin: 0;"><i class="bi bi-heart-pulse"></i> Health Dashboard</h2>
@@ -68,10 +69,10 @@
     </div>
 
     <div class="health-card">
-      <h3><i class="bi bi-clock-history"></i> Recent Days</h3>
-      {{#if weeklyLogs.length}}
+      <h3><i class="bi bi-clock-history"></i> Recent Entries</h3>
+      {{#if recentLogs.length}}
         <ul class="text-sm text-gray-700 space-y-1">
-          {{#each weeklyLogs}}
+          {{#each recentLogs}}
             <li>
               <span class="font-medium">{{this.displayDate}}:</span>
               <i class="bi bi-moon-stars"></i> {{this.sleep_hours}}h,
@@ -85,6 +86,17 @@
       {{else}}
         <p class="health-subtext">No records found.</p>
       {{/if}}
+    </div>
+  </div>
+
+  <!-- Goals & Streaks -->
+  <div class="health-card mb-6" id="goalsCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h3><i class="bi bi-award"></i> Goals & Streaks</h3>
+      <button id="btnAddGoal" class="health-btn-primary" style="padding:0.4rem 1rem; font-size:0.9rem;"><i class="bi bi-plus-circle"></i> Add Goal</button>
+    </div>
+    <div id="goalsContainer">
+      <p style="color:#999;text-align:center;">Loading goals...</p>
     </div>
   </div>
 
@@ -205,4 +217,8 @@
   </div>
 </div>
 
+</div> <!-- .health-dashboard -->
+</div> <!-- .health-scrollable -->
+
 <script src="/js/health-dashboard.js"></script>
+<script src="/js/health-goals.js"></script>

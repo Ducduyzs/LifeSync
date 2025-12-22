@@ -1,3 +1,4 @@
+// NOTE: Postgres pool config and simple db.query wrapper. Check DB_SSL env if connection issues.
 import dotenv from "dotenv";
 import pg from "pg";
 
