@@ -47,10 +47,13 @@ function renderGoals(goals) {
           <div class="goal-title">${formatGoalType(g.goal_type)} <span class="goal-period">(${g.period})</span></div>
           <div class="goal-target">Target: <strong>${g.target}</strong></div>
           ${renderProgressBar(g.progress || 0)}
+          ${g.start_date && g.end_date ? `<div class="goal-range">${g.start_date} → ${g.end_date} ${g.require_each_day ? '<span class="require-badge">(daily)</span>' : ''}</div>` : ''}
+          ${g.total_days ? `<div class="goal-days">Days: <strong>${g.days_met ?? 0}/${g.total_days}</strong></div>` : ''}
         </div>
         <div class="goal-right">
           <div class="goal-stats">${g.value ?? 0} ${g.goal_type === 'water' ? 'L' : g.goal_type === 'sleep' ? 'h' : ''}</div>
           <div class="streak-badge">🔥 ${g.streak ?? 0}</div>
+          ${g.achieved ? `<div class="goal-done">✅ Done</div>` : ''}
           <div class="goal-actions">
             <button class="btn-small" onclick="openEditGoal(${g.id})"><i class="bi bi-pencil"></i></button>
             <button class="btn-small delete" onclick="deleteGoal(${g.id})"><i class="bi bi-trash"></i></button>
@@ -93,6 +96,17 @@ function openAddGoalModal() {
                 <option value="weekly">Weekly</option>
               </select>
             </div>
+            <div class="form-group">
+              <label>Start Date (optional)</label>
+              <input type="date" id="goalStartDate" />
+            </div>
+            <div class="form-group">
+              <label>End Date (optional)</label>
+              <input type="date" id="goalEndDate" />
+            </div>
+            <div class="form-group">
+              <label><input type="checkbox" id="goalRequireEachDay" /> Require daily target for every day in range</label>
+            </div>
             <div class="form-actions">
               <button type="submit" class="health-btn-primary">Save Goal</button>
               <button type="button" class="health-btn-ghost" onclick="closeModal('goalModal')">Cancel</button>
@@ -113,10 +127,23 @@ function openAddGoalModal() {
 
   document.getElementById('goalForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const startDate = document.getElementById('goalStartDate').value || null;
+    const endDate = document.getElementById('goalEndDate').value || null;
+    const requireEach = !!document.getElementById('goalRequireEachDay').checked;
+
+    // client-side validation for date range
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+      showToast('End date must be the same or after start date', 'error');
+      return;
+    }
+
     const payload = {
       goal_type: document.getElementById('goalType').value,
       target: document.getElementById('goalTarget').value,
-      period: document.getElementById('goalPeriod').value
+      period: document.getElementById('goalPeriod').value,
+      start_date: startDate,
+      end_date: endDate,
+      require_each_day: requireEach
     };
     try {
       const res = await fetch('/health/goals', {
@@ -139,16 +166,11 @@ function openAddGoalModal() {
   });
 }
 
-function openEditGoal(id) {
-  // Fetch single goal from list and open modal prefilled
-  const el = document.querySelector(`.goal-item[data-id="${id}"]`);
-  if (!el) return;
-  const title = el.querySelector('.goal-title')?.textContent || '';
-  const parts = title.split(' ');
-  const typeRaw = parts[0].toLowerCase();
-  const target = el.querySelector('.goal-target strong')?.textContent || '';
-  const periodMatch = el.querySelector('.goal-period')?.textContent || '(daily)';
-  const period = periodMatch.replace(/[()]/g, '');
+async function openEditGoal(id) {
+  // get latest goal object
+  const goals = await fetchGoals();
+  const g = goals.find(x => x.id === id);
+  if (!g) return;
 
   const html = `
     <div class="modal-overlay" id="goalEditModal">
@@ -179,6 +201,17 @@ function openEditGoal(id) {
                 <option value="weekly">Weekly</option>
               </select>
             </div>
+            <div class="form-group">
+              <label>Start Date (optional)</label>
+              <input type="date" id="editGoalStartDate" />
+            </div>
+            <div class="form-group">
+              <label>End Date (optional)</label>
+              <input type="date" id="editGoalEndDate" />
+            </div>
+            <div class="form-group">
+              <label><input type="checkbox" id="editGoalRequireEachDay" /> Require daily target for every day in range</label>
+            </div>
             <div class="form-actions">
               <button type="submit" class="health-btn-primary">Update Goal</button>
               <button type="button" class="health-btn-ghost" onclick="closeModal('goalEditModal')">Cancel</button>
@@ -198,16 +231,33 @@ function openEditGoal(id) {
     modal._releaseFocus = trapFocus(modal, '#editGoalTarget');
   }
 
-  document.getElementById('editGoalType').value = typeRaw;
-  document.getElementById('editGoalTarget').value = target;
-  document.getElementById('editGoalPeriod').value = period;
+  document.getElementById('editGoalType').value = g.goal_type;
+  document.getElementById('editGoalTarget').value = g.target;
+  document.getElementById('editGoalPeriod').value = g.period;
+  document.getElementById('editGoalStartDate').value = g.start_date || '';
+  document.getElementById('editGoalEndDate').value = g.end_date || '';
+  document.getElementById('editGoalRequireEachDay').checked = !!g.require_each_day;
 
   document.getElementById('goalEditForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    const startDate = document.getElementById('editGoalStartDate').value || null;
+    const endDate = document.getElementById('editGoalEndDate').value || null;
+    const requireEach = !!document.getElementById('editGoalRequireEachDay').checked;
+
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+      showToast('End date must be the same or after start date', 'error');
+      return;
+    }
+
     const payload = {
+      id: g.id,
       goal_type: document.getElementById('editGoalType').value,
       target: document.getElementById('editGoalTarget').value,
-      period: document.getElementById('editGoalPeriod').value
+      period: document.getElementById('editGoalPeriod').value,
+      start_date: startDate,
+      end_date: endDate,
+      require_each_day: requireEach
     };
     try {
       const res = await fetch('/health/goals', {

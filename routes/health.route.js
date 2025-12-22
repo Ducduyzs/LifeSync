@@ -517,6 +517,108 @@ async function computeGoalProgress(userId, goal) {
   if (!userId || !goal) return { progress: 0, achieved: false, streak: 0 };
 
   let value = 0;
+  let progress = 0;
+  let streak = 0;
+  let days_met = null;
+  let total_days = null;
+
+  if (goal.start_date && goal.end_date) {
+    function parseDateToUTC(dateInput) {
+      if (!dateInput) return null;
+      if (dateInput instanceof Date) {
+        return new Date(Date.UTC(dateInput.getUTCFullYear(), dateInput.getUTCMonth(), dateInput.getUTCDate()));
+      }
+      const str = String(dateInput).slice(0,10);
+      const [y,m,d] = str.split('-').map(Number);
+      return new Date(Date.UTC(y, m - 1, d));
+    }
+    function formatDateYYYYMMDD(d) {
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+    }
+
+    const s = parseDateToUTC(goal.start_date);
+    const e = parseDateToUTC(goal.end_date);
+    total_days = Math.floor((e.getTime() - s.getTime()) / 86400000) + 1;
+
+    const rows = await db.query(`
+      SELECT date::date as date,
+             SUM(COALESCE(steps,0)) AS steps,
+             SUM(COALESCE(calories,0)) AS calories,
+             SUM(COALESCE(water_intake,0)) AS water,
+             AVG(COALESCE(sleep_hours,0)) AS sleep
+      FROM health_logs
+      WHERE user_id = $1 AND date BETWEEN $2 AND $3
+      GROUP BY date::date
+      ORDER BY date::date ASC`, [userId, goal.start_date, goal.end_date]);
+
+    const map = {};
+    rows.forEach(r => { map[formatDateYYYYMMDD(parseDateToUTC(r.date))] = r; });
+
+    if (goal.require_each_day) {
+      let met = 0;
+      for (let i = 0; i < total_days; i++) {
+        const d = new Date(s.getTime() + i * 86400000);
+        const key = formatDateYYYYMMDD(d);
+        const row = map[key] || {};
+        const val = goal.goal_type === 'sleep' ? Number(row.sleep || 0) : Number(row[goal.goal_type] || 0);
+        if (val >= Number(goal.target)) met++;
+      }
+      days_met = met;
+      progress = Math.round((met / total_days) * 100);
+      value = days_met;
+      const achieved = met >= total_days;
+
+      let cnt = 0;
+      for (let i = total_days - 1; i >= 0; i--) {
+        const d = new Date(s.getTime() + i * 86400000);
+        const key = formatDateYYYYMMDD(d);
+        const row = map[key] || {};
+        const val = goal.goal_type === 'sleep' ? Number(row.sleep || 0) : Number(row[goal.goal_type] || 0);
+        if (val >= Number(goal.target)) cnt++; else break;
+      }
+      streak = cnt;
+
+      return { progress: Math.min(100, progress), value, achieved, streak, days_met, total_days };
+    } else {
+      if (goal.goal_type === 'sleep') {
+        const row = await db.query(`SELECT AVG(COALESCE(sleep_hours,0)) AS val FROM health_logs WHERE user_id = $1 AND date BETWEEN $2 AND $3`, [userId, goal.start_date, goal.end_date]);
+        value = Number(row[0].val) || 0;
+        progress = Math.min(100, Math.round((value / Number(goal.target)) * 100));
+      } else {
+        const col = goal.goal_type === 'steps' ? 'steps' : goal.goal_type === 'calories' ? 'calories' : 'water_intake';
+        const row = await db.query(`SELECT SUM(COALESCE(${col},0)) AS val FROM health_logs WHERE user_id = $1 AND date BETWEEN $2 AND $3`, [userId, goal.start_date, goal.end_date]);
+        value = Number(row[0].val) || 0;
+        const totalTarget = Number(goal.target) * total_days;
+        progress = Math.min(100, Math.round((value / totalTarget) * 100));
+      }
+
+      try {
+        const streakQuery = `
+          SELECT date::date as date,
+                 SUM(COALESCE(steps,0)) AS steps,
+                 AVG(COALESCE(sleep_hours,0)) AS sleep,
+                 SUM(COALESCE(calories,0)) AS calories,
+                 SUM(COALESCE(water_intake,0)) AS water
+          FROM health_logs
+          WHERE user_id = $1 AND date BETWEEN $2 AND $3
+          GROUP BY date::date
+          ORDER BY date::date DESC
+          LIMIT 30`;
+        const srows = await db.query(streakQuery, [userId, goal.start_date, goal.end_date]);
+        let cnt = 0;
+        for (const r of srows) {
+          const val = goal.goal_type === 'sleep' ? Number(r.sleep || 0) : Number(r[goal.goal_type] || 0);
+          if (val >= Number(goal.target)) cnt++; else break;
+        }
+        streak = cnt;
+      } catch (sErr) {
+        console.debug('Streak calc error range', sErr.message);
+      }
+
+      return { progress: Math.min(100, progress), value, achieved: progress >= 100, streak, days_met, total_days };
+    }
+  }
+
   if (goal.period === 'daily') {
     const row = await db.query(`SELECT SUM(COALESCE(${goal.goal_type === 'steps' ? 'steps' : goal.goal_type === 'calories' ? 'calories' : goal.goal_type === 'water' ? 'water_intake' : 'sleep_hours'},0)) AS val FROM health_logs WHERE user_id = $1 AND date = CURRENT_DATE`, [userId]);
     value = Number(row[0].val) || 0;
@@ -531,9 +633,9 @@ async function computeGoalProgress(userId, goal) {
     }
   }
 
-  const progress = Math.min(100, Math.round((value / Number(goal.target)) * 100));
+  progress = Math.min(100, Math.round((value / Number(goal.target)) * 100));
 
-  let streak = 0;
+  let streak2 = 0;
   try {
     const streakQuery = `
       SELECT date, ${goal.goal_type === 'sleep' ? 'sleep_hours' : goal.goal_type === 'steps' ? 'steps' : goal.goal_type === 'calories' ? 'calories' : 'water_intake'} as val
@@ -545,23 +647,30 @@ async function computeGoalProgress(userId, goal) {
     for (const r of rows) {
       const val = Number(r.val || 0);
       if (goal.goal_type === 'sleep') {
-        if (val >= Number(goal.target)) streak++; else break;
+        if (val >= Number(goal.target)) streak2++; else break;
       } else {
-        if (val >= Number(goal.target)) streak++; else break;
+        if (val >= Number(goal.target)) streak2++; else break;
       }
     }
   } catch (sErr) {
     console.debug('Streak calc error', sErr.message);
   }
 
-  return { progress, value, achieved: value >= Number(goal.target), streak };
+  return { progress, value, achieved: progress >= 100, streak: streak2 };
 }
 
 router.get('/goals', async (req, res) => {
   try {
     const userId = req.session.user_id;
     if (!userId) return res.json({ success: false, message: 'You are not logged in.' });
-    const goals = await db.query(`SELECT id, goal_type, target, period, created_at FROM health_goals WHERE user_id = $1 ORDER BY created_at DESC`, [userId]);
+    let goals;
+    try {
+      goals = await db.query(`SELECT id, goal_type, target, period, to_char(start_date::date,'YYYY-MM-DD') AS start_date, to_char(end_date::date,'YYYY-MM-DD') AS end_date, require_each_day, status, created_at FROM health_goals WHERE user_id = $1 ORDER BY created_at DESC`, [userId]);
+    } catch (colErr) {
+      console.warn('health_goals table missing start_date/end_date columns. Please apply migrations/add_health_goals_range.sql to enable date-range goals.');
+      goals = await db.query(`SELECT id, goal_type, target, period, created_at FROM health_goals WHERE user_id = $1 ORDER BY created_at DESC`, [userId]);
+    }
+
     const out = [];
     for (const g of goals) {
       const stats = await computeGoalProgress(userId, g);
@@ -578,9 +687,13 @@ router.post('/goals', validateGoalPayload, async (req, res) => {
   try {
     const userId = req.session.user_id;
     if (!userId) return res.json({ success: false, message: 'You are not logged in.' });
-    const { goal_type, target, period } = req.body;
+    const { goal_type, target, period, start_date, end_date, require_each_day } = req.body;
 
-    await db.query(`INSERT INTO health_goals (user_id, goal_type, target, period) VALUES ($1,$2,$3,$4) ON CONFLICT (user_id, goal_type, period) DO UPDATE SET target = EXCLUDED.target, created_at = NOW()`, [userId, goal_type, target, period]);
+    const startDateNorm = start_date ? String(start_date).slice(0,10) : null;
+    const endDateNorm = end_date ? String(end_date).slice(0,10) : null;
+    const requireEach = (require_each_day === true || require_each_day === 'true') ? true : false;
+
+    await db.query(`INSERT INTO health_goals (user_id, goal_type, target, period, start_date, end_date, require_each_day) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (user_id, goal_type, period) DO UPDATE SET target = EXCLUDED.target, start_date = EXCLUDED.start_date, end_date = EXCLUDED.end_date, require_each_day = EXCLUDED.require_each_day, created_at = NOW()`, [userId, goal_type, target, period, startDateNorm, endDateNorm, requireEach]);
     res.json({ success: true, message: 'Goal saved.' });
   } catch (err) {
     console.error('Error saving goal:', err);

@@ -414,6 +414,12 @@ button[disabled] { opacity: 0.6; cursor: not-allowed; }
 .goal-progress-fill { position:absolute; left:0; top:0; bottom:0; background: linear-gradient(90deg,#d46ef5,#667eea); width:0; transition:width 360ms ease; }
 .goal-progress-label { position:absolute; right:0.6rem; top:0; bottom:0; display:flex; align-items:center; color:#fff; font-weight:700; font-size:0.9rem; }
 
+/* Goal meta styles */
+.goal-range { font-size: 0.85rem; color: #7a6b6b; margin-top: 0.35rem; }
+.goal-days { font-size: 0.9rem; color: #4a4a4a; margin-top: 0.35rem; }
+.goal-done { background: #E6F7E6; color: #2E7D32; padding: 0.35rem 0.6rem; border-radius: 8px; font-weight:700; }
+.require-badge { font-size:0.82rem; color:#fff; background:#667eea; padding:0.15rem 0.35rem; border-radius:6px; margin-left:0.5rem; font-weight:700; }
+
 /* Toast styles */
 .toast-container {
   position: fixed;
