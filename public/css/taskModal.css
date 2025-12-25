@@ -2,7 +2,6 @@
 .task-modal {
   display: none;
   position: fixed;
-  z-index: 1055;
   top: 0;
   left: 0;
   width: 100%;
@@ -12,6 +11,10 @@
   justify-content: center;
   align-items: center;
   transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+#taskModal.task-modal {
+  z-index: 1500 !important;
 }
 
 /* Hiển thị modal */
@@ -180,4 +183,18 @@
 #taskTag {
   flex: 1;
   min-width: 0;
+}
+
+
+#taskTypeSelect option[value="branch"] {
+  display: none;
+}
+
+#projectDetailFormModal {
+  z-index: 1600 !important;
+}
+
+#projectDetailFormBox {
+  position: relative;
+  z-index: 1700 !important;
 }

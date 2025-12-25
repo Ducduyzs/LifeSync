@@ -1,19 +1,22 @@
+let isDark = false
+
 document.addEventListener("DOMContentLoaded", () => {
-  const toggleBtn = document.getElementById("themeToggle");
-  if (!toggleBtn) return;
+  const toggle = document.getElementById("themeToggle")
+  const icon = document.getElementById("themeIcon")
 
-  toggleBtn.addEventListener("click", () => {
-    const body = document.body;
-    const icon = toggleBtn.querySelector("i");
+  isDark = localStorage.getItem("theme") === "dark"
+  document.body.classList.toggle("dark", isDark)
+  icon.className = isDark
+    ? "bi bi-moon-fill text-white text-2xl"
+    : "bi bi-sun-fill text-white text-2xl"
 
-    body.classList.toggle("dark");
+  toggle.onclick = () => {
+    isDark = !isDark
+    document.body.classList.toggle("dark", isDark)
+    icon.className = isDark
+      ? "bi bi-moon-fill text-white text-2xl"
+      : "bi bi-sun-fill text-white text-2xl"
+    localStorage.setItem("theme", isDark ? "dark" : "light")
+  }
+})
 
-    if (body.classList.contains("dark")) {
-      icon.classList.replace("bi-moon-fill", "bi-sun-fill");
-      document.body.style.backgroundColor = "#1a1a1a";
-    } else {
-      icon.classList.replace("bi-sun-fill", "bi-moon-fill");
-      document.body.style.backgroundColor = "#fff0f5";
-    }
-  });
-});

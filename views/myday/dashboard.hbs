@@ -1,44 +1,56 @@
-<div class="dashboard-container bg-pink-50 min-h-screen">
-  <main class="p-8">
-    <div class="date-navigation d-flex justify-content-between align-items-center mb-4">
-      <button id="prevDate" class="btn-nav">
-        <i class="bi bi-chevron-left"></i>
+<div class="dashboard-container bg-pink-50 min-h-screen px-6 py-8">
+
+  <div class="date-navigation d-flex justify-content-between align-items-center mb-6">
+    <button id="prevDate" class="btn-nav btn btn-light rounded-circle shadow-sm text-secondary">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+
+    <div class="d-flex align-items-center gap-3">
+      <h2 id="dateTitle" class="fw-bold text-gray-700 m-0 fs-4"></h2>
+      <button id="todayBtn" class="btn btn-sm rounded-pill fw-semibold btn-today border-rose-200">
+        <i class="bi bi-calendar-heart"></i> Today
       </button>
-      <div class="d-flex align-items-center gap-3">
-        <h2 id="dateTitle" class="text-xl fw-semibold m-0"></h2>
-        <button id="todayBtn" class="btn-today">Today</button>
+    </div>
+
+    <button id="nextDate" class="btn-nav btn btn-light rounded-circle shadow-sm text-secondary">
+      <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+
+  <!-- ⭐ MAIN GRID CHỈ MỞ MỘT LẦN -->
+  <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    <!-- 🌸 TASK LIST -->
+    <section class="bg-white p-6 rounded-3xl shadow border border-pink-100">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="fw-semibold flex items-center gap-2" style="color: #DF9090;">
+          <i class="bi bi-list-check"></i>
+          Tasks for Today
+        </h3>
+
+        <div class="flex items-center gap-3 text-gray-500 text-sm">
+          <span class="fw-medium">Sort by:</span>
+          <i class="bi bi-clock-history cursor-pointer hover:text-pink-500" data-sort="start"></i>
+          <i class="bi bi-hourglass-split cursor-pointer hover:text-pink-500" data-sort="end"></i>
+          <i class="bi bi-tag cursor-pointer hover:text-pink-500" data-sort="tag"></i>
+          <i class="bi bi-check2-circle cursor-pointer hover:text-pink-500" data-sort="done"></i>
+          <i class="bi bi-sort-alpha-down cursor-pointer hover:text-pink-500" data-sort="title"></i>
+        </div>
       </div>
-      <button id="nextDate" class="btn-nav">
-        <i class="bi bi-chevron-right"></i>
-      </button>
-    </div>
 
-    <p class="text-gray-600 mb-5 text-center">"You got this 💪"</p>
+      <div id="taskList" class="space-y-4"></div>
+    </section>
 
-    <div id="taskList" class="space-y-4">
-      {{#if tasks.length}}
-        {{#each tasks}}
-          <div class="task-item flex justify-between items-center bg-white rounded-2xl shadow p-4 border border-pink-100">
-            <div class="flex items-center gap-3">
-              <input type="checkbox" {{#if this.is_done}}checked{{/if}} />
-              <span class="font-medium">{{this.title}}</span>
-            </div>
-            <div class="flex items-center gap-4 text-gray-600 text-sm">
-              {{#if this.start_time}}
-                <span><i class="bi bi-clock"></i> {{formatTime this.start_time}}–{{formatTime this.end_time}}</span>
-              {{/if}}
-              {{#if this.tag_title}}
-                <span class="bg-pink-100 text-pink-600 px-2 py-1 rounded-lg text-xs">#{{this.tag_title}}</span>
-              {{/if}}
-              {{#if this.priority}}
-                <span class="text-yellow-500"><i class="bi bi-star-fill"></i> {{this.priority}}</span>
-              {{/if}}
-            </div>
-          </div>
-        {{/each}}
-      {{else}}
-        <p class="text-gray-500 text-center">No tasks for today yet 🌤</p>
-      {{/if}}
-    </div>
+
+    <!-- 🌿 PROJECT CHAINS -->
+  <section class="bg-white p-6 rounded-3xl shadow border border-pink-100 project-tree">
+    <h3 class="fw-semibold mb-4 flex items-center gap-2 text-green-500" style="color: #DF9090;">
+      <i class="bi bi-diagram-3"></i>
+      Project Chains Overview
+    </h3>
+
+    <!-- Container để JS tự render -->
+    <ul class="list-none space-y-4"></ul>
+  </section>
   </main>
 </div>
