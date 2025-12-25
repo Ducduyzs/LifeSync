@@ -1,0 +1,154 @@
+/* dashboard*/
+body.dark {
+  background-color: #0f172a;
+  color: #e5e7eb;
+}
+
+body.dark #themeToggle {
+  background-color: #2b2a2a !important;
+}
+
+body.dark .project-item {
+  background-color: #0f172a;
+  border-color: #0f172a;
+}
+
+body.dark main.flex-1 {
+  background-color: #0f172a;
+  box-shadow: inset 0 0 0 1px #0f172a;
+}
+
+body.dark .project-item:hover {
+  background-color: #111827;
+}
+
+body.dark .dashboard-container {
+  background-color: #1f1f1f;
+}
+
+body.dark section {
+  background-color: #111827;
+  border-color: #1f2937;
+  box-shadow: none;
+}
+
+body.dark h2,
+body.dark h3 {
+  color: #f9fafb;
+}
+
+body.dark .text-gray-500,
+body.dark .text-gray-700 {
+  color: #9ca3af;
+}
+
+body.dark .btn-light {
+  background-color: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+body.dark .btn-light:hover {
+  background-color: #374151;
+}
+
+
+
+body.dark #taskList > div {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+body.dark .project-tree ul li {
+  color: #e5e7eb;
+}
+
+body.dark ::-webkit-scrollbar {
+  width: 8px;
+}
+
+body.dark ::-webkit-scrollbar-thumb {
+  background-color: #374151;
+  border-radius: 4px;
+}
+
+
+/* side bar*/
+
+body.dark aside > div:nth-child(2) {
+  background-color: #1f1f1f !important;
+}
+
+body.dark .btn-menu {
+  background-color: #2d2d2d;
+  color: #e5e7eb;
+  border: 1px solid #3f3f3f;
+}
+
+body.dark .btn-menu:hover {
+  background-color: #3f3f3f;
+  color: #ffffff;
+}
+
+body.dark .btn-add-task:hover {
+  background-color: #737373;
+}
+
+
+/* navbar*/
+body.dark .custom-navbar {
+  background-color: #2d2d2d;
+  border-bottom: 1px solid #1e293b;
+}
+
+body.dark .custom-navbar h4 {
+  color: #e5e7eb;
+}
+
+body.dark .custom-navbar .icon-hover {
+  color: #cbd5f5;
+}
+
+body.dark .custom-navbar .icon-hover:hover {
+  color: #fda4af;
+}
+body.dark .search-input {
+  background-color: #e5e7eb;
+  border: 1px solid #1e293b;
+  color: #e5e7eb;
+}
+
+body.dark .search-input::placeholder {
+  color: #64748b;
+}
+
+body.dark .search-input:focus {
+  background-color: #020617;
+  border-color: #334155;
+  box-shadow: none;
+}
+body.dark .user-info {
+  color: #e5e7eb;
+}
+
+body.dark .user-info i {
+  color: #cbd5f5;
+}
+
+/* search result box */
+body.dark .search-result {
+  background-color: #020617;
+  border-color: #1e293b;
+}
+
+body.dark .search-item:hover {
+  background-color: #1e293b;
+}
+
+body.dark .search-title {
+  color: #e5e7eb;
+}
+
+body.dark .search-sub {
+  color: #94a3b8;
+}

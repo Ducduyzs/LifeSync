@@ -1,0 +1,8 @@
+{{#if toastMessage}}
+<script>
+  window.__TOAST__ = {
+    message: {{{json toastMessage}}},
+    type: {{{json toastType}}}
+  };
+</script>
+{{/if}}

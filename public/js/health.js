@@ -150,7 +150,6 @@ document.addEventListener("DOMContentLoaded", () => {
       output.innerHTML = j.answer;
     };
   }
-
   const btnMeal = document.getElementById("btnMeal");
   if (btnMeal) {
     btnMeal.onclick = async () => {

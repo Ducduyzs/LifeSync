@@ -1,0 +1,65 @@
+<div id="chatWidget" class="fixed bottom-5 right-5 z-[6000]">
+  <button
+    id="chatFab"
+    type="button"
+    class="h-12 w-12 rounded-full bg-rose-500 text-white shadow-lg hover:bg-rose-600 transition flex items-center justify-center"
+  >
+    <i class="bi bi-chat-dots-fill text-lg"></i>
+  </button>
+  <div
+    id="chatPanel"
+    class="hidden absolute bottom-16 right-0 w-[340px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+  >
+    <div class="px-4 py-3 bg-rose-50 border-b border-rose-100 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="h-8 w-8 rounded-full bg-rose-500 text-white flex items-center justify-center">
+          <i class="bi bi-chat-heart-fill text-sm"></i>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-gray-800">
+            Lifesync assistant
+          </div>
+          <div class="text-xs text-gray-500">Online</div>
+        </div>
+      </div>
+
+      <button
+        id="chatClose"
+        type="button"
+        class="h-8 w-8 rounded-lg hover:bg-white/70 flex items-center justify-center"
+      >
+        <i class="bi bi-x-lg text-gray-500 text-sm"></i>
+      </button>
+    </div>
+    <div
+      id="chatBody"
+      class="h-[320px] overflow-y-auto px-4 py-3 space-y-3 bg-white"
+    >
+      <div class="flex items-start gap-2">
+        <div class="h-7 w-7 rounded-full bg-gray-100 flex items-center justify-center">
+          <i class="bi bi-robot text-gray-500 text-sm"></i>
+        </div>
+        <div class="max-w-[240px] rounded-2xl rounded-tl-md bg-gray-100 px-3 py-2 text-sm text-gray-700">
+          Hi, I can help you manage tasks and health logs.
+        </div>
+      </div>
+    </div>
+    <div class="p-3 border-t border-gray-100 bg-white">
+      <form id="chatForm" class="flex items-center gap-2">
+        <input
+          id="chatInput"
+          type="text"
+          class="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200"
+          placeholder="type a message..."
+        />
+        <button
+          type="submit"
+          class="h-10 w-10 rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition flex items-center justify-center"
+        >
+          <i class="bi bi-send-fill text-sm"></i>
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>
