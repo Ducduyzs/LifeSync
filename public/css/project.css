@@ -14,9 +14,71 @@
   transform: translateY(-1px);
 }
 #projectDeleteModal {
-  z-index: 12000 !important;
+  z-index: 1800 !important;
 }
 
 #projectDetailModal {
-  z-index: 11000 !important;
+  z-index: 1600 !important;
+}
+
+#nodeDetailModal.task-modal {
+  z-index: 1700;
+}
+
+
+#projectDetailFormModal .task-modal-content {
+  max-width: 42rem !important;   /* giống Task Detail */
+  padding: 60px !important;       /* giống Task Detail */
+  border-radius: 24px !important; /* giống Task Detail */
+  background: white !important;
+  position: relative;
+}
+
+
+.tree-children {
+  position: relative;
+  margin-left: 28px;
+}
+
+.tree-item {
+  position: relative;
+  padding-left: 28px;
+  margin: 8px 0;
+}
+
+.tree-lines {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 100%;
+}
+
+.tree-lines .v-line {
+  position: absolute;
+  left: 13px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #d1d5db;
+}
+
+.tree-item.is-last .v-line {
+  bottom: 50%;
+}
+
+.tree-lines .h-line {
+  position: absolute;
+  left: 13px;
+  top: 18px;
+  width: 15px;
+  height: 1px;
+  background: #d1d5db;
+}
+
+.tree-node {
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }

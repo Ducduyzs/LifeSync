@@ -6,17 +6,14 @@ import db from "../configs/db.js";
 
 const router = express.Router();
 
-// 🩷 Hiển thị form đăng nhập
 router.get("/login", (req, res) => {
-  res.render("auth/login", { pageTitle: "Login - LifeSync" });
+  res.render("auth/login", { pageTitle: "Login - LifeSync", user: null });
 });
 
-// 🩷 Hiển thị form đăng ký
 router.get("/register", (req, res) => {
-  res.render("auth/register", {pageTitle: "Register - LifeSync" });
+  res.render("auth/register", { pageTitle: "Register - LifeSync", user: null });
 });
 
-// 🧩 Xử lý đăng ký (gửi OTP)
 router.post("/register", async (req, res) => {
   const { full_name, email, password } = req.body;
   try {
@@ -24,23 +21,24 @@ router.post("/register", async (req, res) => {
 
     if (existing.length > 0 && !existing[0].otp_code) {
       return res.render("auth/register", {
-        layout: false,
         pageTitle: "Register - LifeSync",
-        error: "Email already registered. Please log in instead.",
+        toastMessage: "Email already registered. Please log in instead.",
+        toastType: "warning",
+        user: null
       });
     }
 
     const otp = crypto.randomInt(100000, 999999).toString();
     const hashed = await bcrypt.hash(password, 10);
 
-    if (existing.length > 0 && existing[0].otp_code) {
+    if (existing.length > 0) {
       await db.query(
-        'UPDATE users SET "otp_code"=$1, "otp_created_at"=NOW() WHERE email=$2',
+        'UPDATE users SET otp_code=$1, otp_created_at=NOW() WHERE email=$2',
         [otp, email]
       );
     } else {
       await db.query(
-        'INSERT INTO users (full_name, email, password_hash, "otp_code", "otp_created_at") VALUES ($1, $2, $3, $4, NOW())',
+        'INSERT INTO users (full_name, email, password_hash, otp_code, otp_created_at) VALUES ($1,$2,$3,$4,NOW())',
         [full_name, email, hashed, otp]
       );
     }
@@ -54,107 +52,151 @@ router.post("/register", async (req, res) => {
       from: `"LifeSync" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Verify your LifeSync account",
-      text: `Hello ${full_name},\n\nYour LifeSync verification code is: ${otp}\n\nThis code will expire in 3 minutes.`,
+      text: `Your verification code is ${otp}`,
     });
 
     res.render("auth/verify", {
-      layout: false,
       pageTitle: "Verify Email - LifeSync",
       email,
-      message: "OTP has been sent to your email.",
+      toastMessage: "OTP has been sent to your email.",
+      toastType: "info",
+      user: null
     });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     res.render("auth/register", {
-      layout: false,
       pageTitle: "Register - LifeSync",
-      error: "Failed to send OTP. Please try again later.",
+      toastMessage: "Failed to send OTP.",
+      toastType: "error",
+      user: null
     });
   }
 });
 
-// 🧠 Xử lý xác minh OTP
 router.post("/verify", async (req, res) => {
-  const { email, otp } = req.body;
+  const { email, otp, next } = req.body;
   try {
     const user = await db.query(
-      'SELECT *, (otp_created_at AT TIME ZONE \'UTC\') AS otp_time_utc FROM users WHERE email=$1 AND "otp_code"=$2',
+      `
+      SELECT *
+      FROM users
+      WHERE email = $1
+        AND otp_code = $2
+        AND (NOW() AT TIME ZONE 'UTC') - otp_created_at <= INTERVAL '3 minutes'
+      `,
       [email, otp]
     );
 
     if (user.length === 0) {
       return res.render("auth/verify", {
-        layout: false,
+        pageTitle: "Verify Email - LifeSync",
         email,
-        error: "Invalid OTP or email.",
+        next,
+        toastMessage: "otp expired or invalid",
+        toastType: "error",
+        user: null
       });
     }
 
-    const otpCreatedAt = new Date(user[0].otp_time_utc);
-    const expired = Date.now() - otpCreatedAt.getTime() > 3 * 60 * 1000;
+    await db.query(
+      "UPDATE users SET otp_code = NULL, otp_created_at = NULL WHERE email = $1",
+      [email]
+    );
 
-    if (expired) {
-      await db.query('UPDATE users SET "otp_code"=NULL, "otp_created_at"=NULL WHERE email=$1', [email]);
-      return res.render("auth/verify", {
-        layout: false,
-        email,
-        error: "OTP expired. Please register again.",
-      });
+    if (next === "profile") {
+      return res.redirect("/profile");
     }
 
-    await db.query('UPDATE users SET "otp_code"=NULL, "otp_created_at"=NULL WHERE email=$1', [email]);
-    res.render("auth/login", {
-      layout: false,
-      pageTitle: "Login - LifeSync",
-      success: "Account verified successfully. You can now log in!",
-    });
-  } catch (error) {
-    console.error(error);
+    return res.redirect("/auth/login");
+  } catch (err) {
+    console.error(err);
     res.render("auth/verify", {
-      layout: false,
+      pageTitle: "Verify Email - LifeSync",
       email,
-      error: "Verification failed. Please try again.",
+      next,
+      toastMessage: "verification failed",
+      toastType: "error",
+      user: null
     });
   }
 });
 
-// 🔐 Xử lý đăng nhập
+
+
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await db.query("SELECT * FROM users WHERE email=$1", [email]);
     if (user.length === 0) {
       return res.render("auth/login", {
-        layout: false,
         pageTitle: "Login - LifeSync",
-        error: "Invalid email or password.",
+        toastMessage: "Invalid email or password.",
+        toastType: "error",
+        user: null
       });
     }
 
-    const match = await bcrypt.compare(password, user[0].password_hash);
-    if (!match) {
+    const ok = await bcrypt.compare(password, user[0].password_hash);
+    if (!ok) {
       return res.render("auth/login", {
-        layout: false,
         pageTitle: "Login - LifeSync",
-        error: "Invalid email or password.",
+        toastMessage: "Invalid email or password.",
+        toastType: "error",
+        user: null
       });
     }
 
-    // ✅ Lưu session
     req.session.user_id = user[0].user_id;
     req.session.full_name = user[0].full_name;
 
-    req.session.save((err) => {
-      if (err) console.error("Session save error:", err);
-      res.redirect("/dashboard");
-    });
-  } catch (error) {
-    console.error(error);
+    req.session.save(() => res.redirect("/dashboard"));
+  } catch (err) {
+    console.error(err);
     res.render("auth/login", {
-      layout: false,
       pageTitle: "Login - LifeSync",
-      error: "Login failed. Please try again.",
+      toastMessage: "Login failed.",
+      toastType: "error",
+      user: null
     });
+  }
+});
+
+
+router.post("/resend-otp", async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await db.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (user.length === 0) {
+      return res.json({ message: "email not found", type: "error" });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+
+    await db.query(
+      "UPDATE users SET otp_code = $1, otp_created_at = NOW() WHERE email = $2",
+      [otp, email]
+    );
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    });
+
+    await transporter.sendMail({
+      from: `"LifeSync" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Resend OTP - LifeSync",
+      text: `Your new OTP code is: ${otp}`,
+    });
+
+    res.json({ message: "otp resent successfully", type: "success" });
+  } catch (err) {
+    console.error(err);
+    res.json({ message: "failed to resend otp", type: "error" });
   }
 });
 

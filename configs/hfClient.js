@@ -1,6 +1,6 @@
 //Connect to Google Gemini
 import dotenv from "dotenv";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
 
@@ -9,36 +9,25 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 export async function hfText(prompt, options = {}) {
   if (!GEMINI_API_KEY) {
-    return "AI service chưa được cấu hình. Vui lòng thiết lập GEMINI_API_KEY.";
+    return "AI service is not configured.";
   }
-  try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: prompt,
-            },
-          ],
-        },
-      ],
-        generationConfig: {
-          maxOutputTokens: options.maxTokens || 32768,
-          temperature: options.temperature ?? 0.7,
+  try {
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        temperature: options.temperature ?? 0.3,
+        maxOutputTokens: options.maxTokens || 2048,
       },
     });
 
-    const response = result.response;
-    const text = response.text();
-
-    if (!text) return "AI không thể phân tích nội dung.";
-    return text.trim();
+    const text = response?.text;
+    return text ? String(text).trim() : "AI could not process the request.";
   } catch (err) {
     console.error("Gemini error:", err);
-    return "AI đang gặp sự cố, hãy thử lại sau.";
+    return "AI service error.";
   }
 }

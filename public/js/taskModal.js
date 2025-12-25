@@ -2,6 +2,7 @@
 import { renderChain, fmtDate } from "/js/projectChains.js";
 import { renderTask } from "/js/taskTemplate.js";
 import { renderTaskDetail } from "/js/taskDetailTemplate.js";
+window.currentChainIdForBranch = null;
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -42,8 +43,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // GLOBAL STATE
   const taskTypeSelect = document.getElementById("taskTypeSelect");
-  const timeRow = document.querySelector(".time-row");
-  const dateRow = document.querySelector(".date-row");
+  const timeRow = document.getElementById("taskStart")?.closest(".d-flex") || null;
+  const dateRow = document.getElementById("taskStartDate")?.closest(".d-flex") || null;
+
   let currentSort = "start";
   let now = new Date();
   now.setHours(now.getHours() + 7);
@@ -96,6 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", async () => {
       form.reset();
       delete form.dataset.editId;
+      delete form.dataset.editProjectId;
       modal.classList.add("show");
       modal.style.opacity = "0";
       setTimeout(() => (modal.style.opacity = "1"), 10);
@@ -209,64 +212,182 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+
   // FORM SUBMIT
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    const editId = form.dataset.editId;
-    const type = taskTypeSelect.value;
+  const type = taskTypeSelect.value;
+  const editId = form.dataset.editId;
+  const editProjectId = form.dataset.editProjectId;
 
-    const taskData = {
-      title: document.getElementById("taskTitle").value.trim(),
-      note: document.getElementById("taskNote").value.trim(),
-      start_time: document.getElementById("taskStart").value || null,
-      end_time: document.getElementById("taskEnd").value || null,
-      start_date: document.getElementById("taskStartDate")?.value || null,
-      end_date: document.getElementById("taskEndDate")?.value || null,
-      priority: document.getElementById("taskPriority").value,
-      tag_id: tagSelect.value || null,
+  const taskData = {
+    title: document.getElementById("taskTitle").value.trim(),
+    note: document.getElementById("taskNote").value.trim(),
+    start_time: document.getElementById("taskStart").value || null,
+    end_time: document.getElementById("taskEnd").value || null,
+    start_date: document.getElementById("taskStartDate")?.value || null,
+    end_date: document.getElementById("taskEndDate")?.value || null,
+    priority: document.getElementById("taskPriority").value,
+    tag_id: tagSelect.value || null,
+  };
+
+  if (!taskData.title)
+    return showToast("Please enter a title.", "warning");
+
+
+  // ------------------ UPDATE TASK ------------------
+  if (editId && type === "task") {
+    const r = await fetch(`/tasks/update/${editId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(taskData),
+    });
+
+    const j = await r.json();
+    if (!j.success) return showToast("Failed to update task.", "error");
+
+    showToast("Task updated successfully!", "success");
+    delete form.dataset.editId;
+    modal.classList.remove("show");
+    await loadTasks();
+    return;
+  }
+
+
+  // ------------------ UPDATE PROJECT ------------------
+  if (editProjectId && type === "project") {
+    const updateData = {
+      title: taskData.title,
+      description: taskData.note,
+      priority: taskData.priority,
+      start_time: taskData.start_date,
+      end_time: taskData.end_date,
+      tag_id: taskData.tag_id,
+      color: "#FFCACA",
     };
 
-    if (!taskData.title)
-      return showToast("Please enter a title.", "warning");
+    const r = await fetch(`/projects/update/${editProjectId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updateData),
+    });
 
-    if (editId && type === "task") {
-      const r = await fetch(`/tasks/update/${editId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(taskData),
-      });
-      const j = await r.json();
-      if (j.success) {
-        showToast("Task updated successfully!", "success");
-        delete form.dataset.editId;
-        modal.classList.remove("show");
-        await loadTasks();
-        return;
-      } else {
-        return showToast("Failed to update task.", "error");
-      }
-    }
+    const j = await r.json();
+    if (!j.success) return showToast("Failed to update project.", "error");
 
-    if (type === "task") {
-      await sendData("/tasks/add", taskData, "Task", taskData.start_date);
-      return;
-    }
+    showToast("Project updated successfully!", "success");
+    delete form.dataset.editProjectId;
+    modal.classList.remove("show");
 
-    if (type === "project") {
-      const projectData = {
-        title: taskData.title,
-        description: taskData.note,
-        color: "#FFCACA",
-        priority: taskData.priority,
-        start_time: taskData.start_date,
-        end_time: taskData.end_date,
-        tag_id: taskData.tag_id,
-      };
-      await sendData("/projects/add", projectData, "Project Chain");
-      return;
-    }
-  });
+    await loadProjects();
+    return;
+  }
+
+
+  // ------------------ UPDATE BRANCH ------------------
+  const editNodeId = form.dataset.editNodeId;
+
+  if (editNodeId && type === "branch") {
+    const data = {
+      title: taskData.title,
+      note: taskData.note,
+      priority: taskData.priority,
+      tag_id: taskData.tag_id,
+
+      taskStartDate: taskData.start_date,
+      taskEndDate: taskData.end_date,
+      taskStart: taskData.start_time,
+      taskEnd: taskData.end_time
+    };
+
+
+
+    const r = await fetch(`/projects/node/update/${editNodeId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    const j = await r.json();
+    if (!j.success) return showToast("Update failed", "error");
+
+    showToast("Branch updated!", "success");
+
+    delete form.dataset.editNodeId;
+    modal.classList.remove("show");
+
+    document
+    .querySelector(
+      `.project-item[data-project-id="${window.currentChainIdForBranch}"]`
+    )
+    ?.click();
+
+
+    return;
+  }
+
+
+  // ------------------ ADD NEW TASK ------------------
+  if (type === "task") {
+    await sendData("/tasks/add", taskData, "Task", taskData.start_date);
+    return;
+  }
+
+
+  // ------------------ ADD NEW PROJECT ------------------
+  if (type === "project") {
+    const projectData = {
+      title: taskData.title,
+      description: taskData.note,
+      color: "#FFCACA",
+      priority: taskData.priority,
+      start_time: taskData.start_date,
+      end_time: taskData.end_date,
+      tag_id: taskData.tag_id,
+    };
+
+    await sendData("/projects/add", projectData, "Project Chain");
+    return;
+  }
+
+
+  // ------------------ ADD BRANCH ------------------
+  if (type === "branch") {
+    if (!window.currentChainIdForBranch)
+      return showToast("No project selected for branch.", "error");
+
+    const branchData = {
+      title: taskData.title,
+      note: taskData.note,
+      priority: taskData.priority,
+      tag_id: taskData.tag_id,
+      parent_id: form.dataset.parentNodeId || null,
+
+      taskStartDate: taskData.start_date,
+      taskEndDate: taskData.end_date,
+      taskStart: taskData.start_time,
+      taskEnd: taskData.end_time
+    };
+
+
+
+
+
+    const url = `/projects/node/add/${window.currentChainIdForBranch}`;
+    await sendData(url, branchData, "Branch");
+
+    document
+      .querySelector(
+        `.project-item[data-project-id="${window.currentChainIdForBranch}"]`
+      )
+      ?.click();
+
+      delete form.dataset.parentNodeId;
+    return;
+  }
+});
+
 
   // LOAD TASKS
   async function loadTasks(forceDate = null) {
@@ -498,7 +619,7 @@ document.addEventListener("click", async (e) => {
       console.error("Error opening edit form:", err);
     }
   });
-
+  
   // INIT LOAD
   loadTasks();
   loadProjects();
